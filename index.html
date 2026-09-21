@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0b0d" />
+  <title>Киноклуб</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Киноклуб" />
+  <link rel="stylesheet" href="style.css?v=3" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="script.js?v=3" defer></script>
+</head>
+<body>
+  <!-- Авторизация -->
+  <div id="auth-screen" class="auth-screen">
+      <div class="auth-box">
+        <div class="brand brand-auth"><span>🎬</span> Киноклуб</div>
+
+        <div class="auth-tabs">
+            <button type="button" class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Вход</button>
+            <button type="button" class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Регистрация</button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+            <h2>С возвращением</h2>
+            <p class="auth-description">Войдите, чтобы оценивать фильмы и общаться с друзьями.</p>
+            <div class="form-group">
+                <label for="login-email">Email или ник</label>
+                <input id="login-email" type="text" autocomplete="username" placeholder="example@mail.ru или ВашНик" required />
+            </div>
+            <div class="form-group">
+                <label for="login-password">Пароль</label>
+                <input id="login-password" type="password" autocomplete="current-password" placeholder="Ваш пароль" required />
+            </div>
+            <button class="btn btn-primary btn-full" type="submit">Войти</button>
+            <div id="auth-error" class="auth-error" hidden></div>
+        </form>
+
+        <form id="register-form" class="auth-form" style="display:none;">
+            <h2>Создать аккаунт</h2>
+            <p class="auth-description">Придумайте ник и заполните данные — это займёт полминуты.</p>
+            <div class="form-group">
+                <label for="register-username">Ник</label>
+                <input id="register-username" type="text" autocomplete="nickname" placeholder="Ваш ник (мин. 3 символа)" required minlength="3" maxlength="30" />
+            </div>
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input id="register-email" type="email" autocomplete="email" placeholder="example@mail.ru" required />
+            </div>
+            <div class="form-group">
+                <label for="register-password">Пароль</label>
+                <input id="register-password" type="password" autocomplete="new-password" placeholder="Минимум 6 символов" required minlength="6" />
+            </div>
+            <div class="form-group">
+                <label for="register-password2">Повторите пароль</label>
+                <input id="register-password2" type="password" autocomplete="new-password" placeholder="Ещё раз" required minlength="6" />
+            </div>
+            <button class="btn btn-primary btn-full" type="submit">Создать аккаунт</button>
+            <div id="register-error" class="auth-error" hidden></div>
+        </form>
+      </div>
+  </div>
+
+  <div id="main-app" hidden>
+    <nav>
+      <div class="nav-container">
+        <a class="brand" href="#" onclick="showSection('home'); return false;"><span>🎬</span> Киноклуб</a>
+        <ul class="nav-links">
+          <li><a href="#" onclick="showSection('home'); return false;">Главная</a></li>
+          <li><a href="#" onclick="showSection('movies'); return false;">Фильмы</a></li>
+          <li><a href="#" onclick="showSection('rate'); return false;">Оценить</a></li>
+          <li><a href="#" onclick="showSection('rated'); return false;">Оценённые</a></li>
+          <li><a href="#" onclick="showSection('watchlist'); return false;">📌 Хочу посмотреть</a></li>
+          <li><a href="#" onclick="showSection('wheel'); return false;">Колесо</a></li>
+          <li><a href="#" onclick="showSection('chat'); return false;">💬 Чат <span id="unread-badge" class="nav-badge" style="display:none;">0</span></a></li>
+          <li><a href="#" onclick="showSection('ai-chat'); return false;">🤖 ИИ Чат</a></li>
+        </ul>
+        <div class="nav-user">
+          <button class="icon-button" type="button" onclick="showNotifications()" aria-label="Уведомления">🔔 <span id="notif-badge" class="nav-badge" hidden>0</span></button>
+          <div style="position:relative;">
+            <button class="logout-button" type="button" onclick="toggleProfileMenu(event)">👤 <span id="user-name-display"></span></button>
+            <div id="profile-menu" style="display:none;position:absolute;top:100%;right:0;z-index:200;min-width:220px;padding:8px;background:#17171b;border:1px solid #383842;border-radius:12px;box-shadow:0 18px 45px rgba(0,0,0,0.48);">
+              <a href="#" onclick="showSection('profile'); loadProfile(); toggleProfileMenu(event); return false;" style="display:block;padding:10px 12px;color:#fff;text-decoration:none;border-radius:8px;">👤 Мой профиль</a>
+              <a href="#" onclick="showSection('friends'); toggleProfileMenu(event); return false;" style="display:block;padding:10px 12px;color:#fff;text-decoration:none;border-radius:8px;">👥 Друзья</a>
+              <div style="border-top:1px solid #383842;margin:5px 0;"></div>
+              <a href="#" onclick="logout(); return false;" style="display:block;padding:10px 12px;color:#ff9ca1;text-decoration:none;border-radius:8px;">🚪 Выйти</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section id="home" class="section active">
+        <div class="halloween-banner">
+          <div class="halloween-banner-content">
+            <span class="halloween-banner-icon">🎃</span>
+            <div class="halloween-banner-text">
+              <h3>С Хэллоуином, кинолюбители!</h3>
+              <p>Смотрите ужасы, триллеры и мистику — самое время</p>
+            </div>
+          </div>
+        </div>
+        <div class="home-layout">
+          <div class="home-content">
+            <div class="page-heading">
+              <div>
+                <p class="eyebrow">Лента киноклуба</p>
+                <h2>📽️ Недавно просмотренное</h2>
+              </div>
+              <select id="reviews-sort" class="sort-select" onchange="sortRecentReviews(this.value)">
+                <option value="date-desc">Свежие</option>
+                <option value="popular">Популярные</option>
+                <option value="rating-desc">С высоким рейтингом</option>
+                <option value="rating-asc">С низким рейтингом</option>
+              </select>
+            </div>
+            <div id="recent-reviews" class="reviews-list"><div class="empty-state">Загрузка рецензий…</div></div>
+          </div>
+          <aside class="home-sidebar">
+            <div class="sidebar-card profile-tip">
+              <span class="sidebar-icon">🎬</span>
+              <div><h3>Ваш Киноклуб</h3><p>Оценивайте фильмы, делитесь впечатлениями и выбирайте, что посмотреть вечером.</p></div>
+            </div>
+            <div class="sidebar-card">
+              <h3>Быстрые действия</h3>
+              <button class="quick-action quick-action-primary" type="button" onclick="showSection('rate')"><span data-star>⭐</span> Оценить фильм</button>
+              <button class="quick-action" type="button" onclick="showSection('movies')"><span>🎞️</span> Открыть каталог</button>
+              <button class="quick-action" type="button" onclick="showSection('wheel')"><span>🎡</span> Выбрать случайный фильм</button>
+            </div>
+            <div class="sidebar-card sidebar-hint"><span>💡</span><p>Не можете выбрать фильм? Откройте «Колесо» — оно поможет определиться.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="movies" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Каталог</p><h2>🎬 Фильмы <span id="movies-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
+          <button class="btn btn-secondary" type="button" onclick="loadAllMovies(true)">↻ Обновить</button>
+        </div>
+        <div class="movies-toolbar">
+          <div class="genre-filter">
+            <button class="genre-btn active" type="button" onclick="filterByCategory(null, event)">🎬 Все</button>
+            <button class="genre-btn" type="button" onclick="filterByCategory('films', event)">🎞️ Фильмы</button>
+            <button class="genre-btn" type="button" onclick="filterByCategory('cartoons', event)">🧸 Мультфильмы</button>
+            <button class="genre-btn" type="button" onclick="filterByCategory('anime', event)">🌸 Аниме</button>
+            <button class="genre-btn" type="button" onclick="filterByCategory('series', event)">📺 Сериалы</button>
+          </div>
+        </div>
+        <div class="search-container">
+          <div class="search-box"><input id="movie-search-all" type="search" placeholder="Найдите фильм по названию…" autocomplete="off" oninput="searchSuggestionsAll(this.value)" /></div>
+          <div id="suggestions-all" class="suggestions"></div>
+          <div id="search-results-all" class="search-results"></div>
+        </div>
+        <div id="movies-grid" class="movies-grid"></div>
+      </section>
+
+      <section id="watchlist" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Закладки</p><h2>📌 Хочу посмотреть <span id="watchlist-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
+        </div>
+        <div id="watchlist-grid" class="movies-grid"></div>
+      </section>
+
+      <section id="rated" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Мнения участников</p><h2><span data-star>⭐</span> Оценённые фильмы <span id="rated-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
+          <select id="rated-sort" class="sort-select" onchange="sortRatedMovies(this.value)">
+            <option value="rating-desc">Рейтинг ↓</option>
+            <option value="rating-asc">Рейтинг ↑</option>
+            <option value="reviews-desc">Больше оценок</option>
+            <option value="date-desc">Новые</option>
+          </select>
+        </div>
+        <div id="rated-movies-list"></div>
+      </section>
+
+      <section id="wheel" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Выбор на вечер</p><h2>🎡 Колесо фильмов</h2></div>
+          <button class="btn btn-secondary" type="button" onclick="loadWheelMovies()">↻ Новые фильмы</button>
+        </div>
+        <div class="wheel-layout">
+          <div class="wheel-card">
+            <p class="wheel-info" id="wheel-info">🎬 Загрузка фильмов...</p>
+            <div class="wheel-wrap">
+              <canvas id="wheel-canvas" width="360" height="360"></canvas>
+              <div class="wheel-arrow">
+                <svg width="30" height="40" viewBox="0 0 30 40"><polygon points="15,40 0,0 30,0" fill="#e50914" stroke="#fff" stroke-width="2"/></svg>
+              </div>
+            </div>
+            <div class="wheel-controls">
+              <div class="wheel-duration">
+                <button type="button" onclick="changeDuration(-1)">−</button>
+                <input id="spin-duration" type="number" min="1" max="30" value="3" />
+                <button type="button" onclick="changeDuration(1)">+</button>
+                <span class="duration-label">сек</span>
+              </div>
+              <button id="spin-btn" class="btn btn-primary btn-spin" type="button" onclick="spinWheel()">🎲 Крутить</button>
+            </div>
+            <div id="wheel-result" class="wheel-result"></div>
+          </div>
+          <div class="wheel-history-card">
+            <h3>📜 История выпадений</h3>
+            <div id="wheel-history"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="rate" class="section">
+        <div class="page-heading"><div><p class="eyebrow">Добавьте своё мнение</p><h2><span data-star>⭐</span> Поставить оценку</h2></div></div>
+        <div class="rate-layout">
+          <div class="rate-card">
+            <div class="search-container" id="rate-search-container">
+              <div class="search-box"><input id="movie-search" type="search" placeholder="Начните вводить название фильма…" autocomplete="off" oninput="searchSuggestions(this.value)" /></div>
+              <div id="suggestions" class="suggestions"></div>
+            </div>
+            <div id="search-results" class="search-results"></div>
+            <form id="review-form" hidden>
+              <input id="selected-movie-id" type="hidden" />
+              <div id="selected-movie-info"></div>
+              <div class="form-group">
+                <label>Оценка <span id="rating-display" class="rating-display">0/10</span></label>
+                <div class="star-rating" id="star-rating">
+                  <button type="button" class="star" onclick="setRating(1)">★</button>
+                  <button type="button" class="star" onclick="setRating(2)">★</button>
+                  <button type="button" class="star" onclick="setRating(3)">★</button>
+                  <button type="button" class="star" onclick="setRating(4)">★</button>
+                  <button type="button" class="star" onclick="setRating(5)">★</button>
+                  <button type="button" class="star" onclick="setRating(6)">★</button>
+                  <button type="button" class="star" onclick="setRating(7)">★</button>
+                  <button type="button" class="star" onclick="setRating(8)">★</button>
+                  <button type="button" class="star" onclick="setRating(9)">★</button>
+                  <button type="button" class="star" onclick="setRating(10)">★</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Рекомендация</label>
+                <div class="recommend-buttons">
+                  <button class="btn-recommend btn-recommend-yes active" type="button" onclick="setRecommend(true)">👍 Советую</button>
+                  <button class="btn-recommend btn-recommend-no" type="button" onclick="setRecommend(false)">👎 Не советую</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="review-text">Рецензия <span class="optional">необязательно</span></label>
+                <textarea id="review-text" placeholder="Что вы думаете о фильме?"></textarea>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" type="submit">Опубликовать оценку</button>
+                <button class="btn btn-secondary" type="button" onclick="resetRateForm()">Отмена</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="friends" class="section">
+        <div class="page-heading"><div><p class="eyebrow">Ваше окружение</p><h2>👥 Друзья</h2></div></div>
+        <div class="friends-layout">
+          <div class="friends-card"><h3>Найти пользователя</h3><input id="user-search" type="search" placeholder="Введите имя пользователя…" autocomplete="off" oninput="searchUsers(this.value)" /><div id="user-search-results" class="stack-list"></div></div>
+          <div class="friends-card"><h3>Заявки</h3><div id="friend-requests" class="stack-list"></div></div>
+          <div class="friends-card"><h3>Мои друзья</h3><div id="friends-list" class="stack-list"></div></div>
+        </div>
+      </section>
+
+      <section id="profile" class="section">
+        <div class="page-heading"><div><p class="eyebrow">Настройки аккаунта</p><h2>👤 Профиль</h2></div></div>
+        <div id="profile-info"></div>
+      </section>
+
+      <section id="chat" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Личные сообщения</p><h2>💬 Чат <span id="chat-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
+        </div>
+        <div class="tg-chat" id="tg-chat">
+          <div class="tg-sidebar" id="tg-sidebar">
+            <div class="tg-sidebar-search">
+              <input type="text" id="chat-search" placeholder="🔍 Поиск..." autocomplete="off" oninput="filterChats(this.value)" />
+            </div>
+            <div id="chat-list" class="tg-chat-list"></div>
+          </div>
+          <div class="tg-dialog" id="tg-dialog">
+            <div class="tg-dialog-header" id="tg-dialog-header" style="display:none;">
+              <button class="tg-back-btn" onclick="backToChatList()">←</button>
+              <div class="tg-dialog-avatar" id="tg-dialog-avatar"></div>
+              <div class="tg-dialog-info">
+                <div class="tg-dialog-name" id="tg-dialog-name"></div>
+                <div class="tg-dialog-status" id="tg-dialog-status"></div>
+              </div>
+            </div>
+            <div id="chat-container" class="tg-messages"></div>
+            <div class="tg-empty" id="tg-empty">
+              <div class="tg-empty-icon">💬</div>
+              <div>Выберите чат, чтобы начать общение</div>
+            </div>
+            <button class="tg-scroll-bottom" id="tg-scroll-bottom" onclick="forceScrollToBottom()" style="display:none;">↓</button>
+            <div class="tg-input-area" id="chat-controls" style="display:none;">
+              <div class="tg-reply-preview" id="tg-reply-preview" style="display:none;"></div>
+              <div class="tg-input-row">
+                <button class="tg-icon-btn" onclick="toggleEmojiPicker(event)" title="Эмодзи">😊</button>
+                <label class="tg-icon-btn" title="Изображение">🖼️<input type="file" accept="image/*" onchange="handleFileSelect(event)" style="display:none;" /></label>
+                <label class="tg-icon-btn" title="Видео">🎬<input type="file" accept="video/*" onchange="handleVideoSelect(event)" style="display:none;" /></label>
+                <input id="chat-input" type="text" placeholder="Написать сообщение..." autocomplete="off" onkeydown="handleChatKeydown(event)" onpaste="handlePaste(event)" oninput="handleTyping()" />
+                <button class="tg-send-btn" onclick="sendMessage()" title="Отправить">➤</button>
+              </div>
+              <div class="tg-emoji-picker" id="tg-emoji-picker" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="ai-chat" class="section">
+        <div class="page-heading"><div><p class="eyebrow">Искусственный интеллект</p><h2>🤖 ИИ-помощник</h2></div></div>
+        <div class="chat-card" style="max-width:none;width:100%;">
+          <div id="ai-chat-messages" class="chat-container" style="height:600px;overflow-y:auto;padding:20px;background:#0d0d10;"><div style="text-align:center;color:#888;padding:40px 0;">🤖 Задайте вопрос о фильмах, оценках или пользователях!</div></div>
+          <div class="chat-controls" style="display:flex;gap:8px;margin-top:12px;">
+            <input id="ai-chat-input" type="text" placeholder="Спросите что-нибудь..." autocomplete="off" style="flex:1;padding:14px;background:#121215;border:1px solid var(--border);border-radius:10px;color:#fff;font-size:1rem;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAIMessage();}" />
+            <button class="btn btn-primary" type="button" onclick="sendAIMessage()" style="padding:14px 28px;font-size:1rem;">📨 Отправить</button>
+            <button class="btn btn-secondary" type="button" onclick="clearAIChat()" title="Очистить" style="padding:14px 18px;">🗑</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <div class="bottom-nav" id="bottom-nav">
+      <a href="#" onclick="showSection('home'); return false;" data-nav="home"><span>🏠</span><small>Главная</small></a>
+      <a href="#" onclick="showSection('movies'); return false;" data-nav="movies"><span>🎬</span><small>Фильмы</small></a>
+      <a href="#" onclick="showSection('rate'); return false;" data-nav="rate"><span data-star>⭐</span><small>Оценить</small></a>
+      <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><span>📌</span><small>Смотреть</small></a>
+      <a href="#" onclick="showSection('wheel'); return false;" data-nav="wheel"><span>🎡</span><small>Колесо</small></a>
+      <a href="#" onclick="showSection('chat'); return false;" data-nav="chat"><span>💬</span><small>Чат</small><span id="unread-badge-mobile" class="nav-badge" style="display:none;">0</span></a>
+    </div>
+  </div>
+
+  <div id="movie-modal" class="modal"><div class="modal-content"><button class="close" type="button" onclick="closeModal()">×</button><div id="modal-body"></div></div></div>
+  <div id="edit-review-modal" class="modal"><div class="modal-content"><button class="close" type="button" onclick="closeEditReviewModal()">×</button><h2>✏️ Редактировать рецензию</h2><div class="form-group"><label>Оценка <span id="edit-rating-display" class="rating-display">0/10</span></label><div class="star-rating edit-star-rating" id="edit-star-rating"><button type="button" class="star" onclick="setEditRating(1)">★</button><button type="button" class="star" onclick="setEditRating(2)">★</button><button type="button" class="star" onclick="setEditRating(3)">★</button><button type="button" class="star" onclick="setEditRating(4)">★</button><button type="button" class="star" onclick="setEditRating(5)">★</button><button type="button" class="star" onclick="setEditRating(6)">★</button><button type="button" class="star" onclick="setEditRating(7)">★</button><button type="button" class="star" onclick="setEditRating(8)">★</button><button type="button" class="star" onclick="setEditRating(9)">★</button><button type="button" class="star" onclick="setEditRating(10)">★</button></div></div><div class="form-group"><label>Рекомендация</label><div class="recommend-buttons"><button class="btn-recommend btn-recommend-yes" type="button" onclick="setEditRecommend(true)">👍 Советую</button><button class="btn-recommend btn-recommend-no" type="button" onclick="setEditRecommend(false)">👎 Не советую</button></div></div><div class="form-group"><label for="edit-review-text">Рецензия</label><textarea id="edit-review-text"></textarea></div><div class="modal-actions"><button class="btn btn-primary" type="button" onclick="saveEditedReview()">Сохранить</button><button class="btn btn-secondary" type="button" onclick="closeEditReviewModal()">Отмена</button></div></div></div>
+  <div id="user-profile-modal" class="modal"><div class="modal-content"><button class="close" type="button" onclick="closeUserProfileModal()">×</button><div id="user-profile-body"></div></div></div>
+  <div id="notifications-modal" class="modal"><div class="modal-content"><button class="close" type="button" onclick="closeNotificationsModal()">×</button><h2>🔔 Уведомления</h2><div id="notifications-list" class="stack-list"></div></div></div>
+  <div id="image-lightbox" class="lightbox" onclick="closeLightbox()"><img id="lightbox-image" alt="Увеличенное изображение" onclick="event.stopPropagation(); toggleZoom()" /></div>
+  <div id="confirm-modal" class="modal"><div class="modal-content" style="max-width:400px;"><h2>Подтверждение</h2><p id="confirm-message" style="color:#ccc;"></p><div class="modal-actions"><button class="btn btn-danger" onclick="confirmAction()">Да, удалить</button><button class="btn btn-secondary" onclick="closeConfirmModal()">Отмена</button></div></div></div>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+  }
+  </script>
+</body>
+</html>
