@@ -1141,3 +1141,11 @@ body.newyear .visibility-badge.friends {
         padding: 8px 12px;
     }
 }
+/* ============ СЕКЦИЯ ПРОСМОТРЕННЫХ ============ */
+#watched .movies-grid {
+    margin-top: 8px;
+}
+#watched-grid .movie-card .watched-btn.active {
+    background: rgba(37, 166, 90, 0.95);
+    opacity: 1;
+}
