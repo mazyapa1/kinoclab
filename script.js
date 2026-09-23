@@ -891,7 +891,7 @@ async function showMovieDetails(filmId) {
         const kid = Number(filmId);
         const isWatched = watchedMovieIds.has(kid);
 
-        // Находим или создаём фильм в БД, чтобы работал watchlist
+        // Находим или создаём фильм в БД для watchlist
         let dbMovieId = null;
         let watchlistBtnClass = '';
         let watchlistBtnText = '📌 Хочу посмотреть';
@@ -2636,4 +2636,33 @@ async function changeGlobalTheme(theme) {
     const labels = { default: 'Обычная', halloween: '🎃 Хэллоуин', newyear: '🎄 Новогодняя' };
     showNotification('Тема для всех: ' + labels[theme], 'success');
     if (currentSection === 'profile') loadProfile();
+}
+
+async function toggleWatchlistFromModal(movieId, kinopoiskId, btnEl) {
+    if (!currentUser) return;
+    try {
+        const { data: existing } = await supabaseClient
+            .from('watchlist')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('movie_id', movieId)
+            .maybeSingle();
+
+        if (existing) {
+            await supabaseClient.from('watchlist').delete().eq('id', existing.id);
+            if (btnEl) { btnEl.classList.remove('active'); btnEl.innerHTML = '📌 Хочу посмотреть'; }
+            showNotification('Убрано из списка', 'info');
+        } else {
+            await supabaseClient.from('watchlist').insert({
+                user_id: currentUser.id,
+                movie_id: movieId,
+                kinopoisk_id: kinopoiskId
+            });
+            if (btnEl) { btnEl.classList.add('active'); btnEl.innerHTML = '✓ В списке'; }
+            showNotification('Добавлено в список!', 'success');
+        }
+    } catch (e) {
+        console.error('toggleWatchlistFromModal error:', e);
+        showNotification('Ошибка: ' + (e.message || ''), 'error');
+    }
 }
