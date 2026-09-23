@@ -2715,3 +2715,26 @@ async function toggleWatchlistFromModal(movieId, kinopoiskId, btnEl) {
         showNotification('Ошибка: ' + (e.message || ''), 'error');
     }
 }
+
+// Закрытие подсказок поиска по клику вне
+document.addEventListener('click', (e) => {
+    // Подсказки в секции "Фильмы"
+    const sugAll = document.getElementById('suggestions-all');
+    const searchBoxAll = document.getElementById('movie-search-all');
+    if (sugAll && searchBoxAll) {
+        if (!searchBoxAll.contains(e.target) && !sugAll.contains(e.target)) {
+            sugAll.classList.remove('active');
+            sugAll.innerHTML = '';
+        }
+    }
+
+    // Подсказки в секции "Оценить" (если есть)
+    const sug = document.getElementById('suggestions');
+    const searchBox = document.getElementById('movie-search');
+    if (sug && searchBox) {
+        if (!searchBox.contains(e.target) && !sug.contains(e.target)) {
+            sug.classList.remove('active');
+            sug.innerHTML = '';
+        }
+    }
+});
