@@ -2483,12 +2483,14 @@ async function viewUserProfile(userId) {
         { data: profile },
         { data: allReviews },
         { data: friends },
-        { data: watchlist }
+        { data: watchlist },
+        { data: watchedList }
     ] = await Promise.all([
         supabaseClient.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabaseClient.from('reviews').select('*, movies(name, kinopoisk_id)').eq('user_id', userId),
         supabaseClient.from('friendships').select('*').eq('user_id', userId),
-        supabaseClient.from('watchlist').select('*, movies(id, name, kinopoisk_id, cover_url)').eq('user_id', userId).order('added_at', { ascending: false })
+        supabaseClient.from('watchlist').select('*, movies(id, name, kinopoisk_id, cover_url)').eq('user_id', userId).order('added_at', { ascending: false }),
+        supabaseClient.from('watched').select('*').eq('user_id', userId).order('watched_at', { ascending: false })
     ]);
 
     if (!profile) { body.innerHTML = '<p>Профиль не найден</p>'; return; }
@@ -2496,6 +2498,7 @@ async function viewUserProfile(userId) {
     const friendIds = await getMyFriendIds();
     const reviews = (allReviews || []).filter(r => canSeeReview(r, friendIds));
     const visibleWatchlist = watchlist || [];
+    const visibleWatched = watchedList || [];
 
     const avatar = profile.avatar_url || '';
     const username = profile.username || 'Пользователь';
@@ -2542,6 +2545,24 @@ async function viewUserProfile(userId) {
             '</div></div>'
         : '<div style="margin-top:20px;text-align:left;"><h3>📌 Хочу посмотреть</h3><p style="color:#888;">Список пуст</p></div>';
 
+    const watchedHTML = visibleWatched.length
+        ? '<div style="margin-top:20px;text-align:left;">' +
+            '<h3 style="margin-bottom:14px;">👁 Просмотрено (' + visibleWatched.length + ')</h3>' +
+            '<div class="movies-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">' +
+            visibleWatched.map(w => {
+                const t = w.movie_name || 'Фильм';
+                const kid = w.kinopoisk_id;
+                const poster = w.poster_url || '';
+                return '<div class="movie-card" style="cursor:pointer;" onclick="closeUserProfileModal(); showMovieDetails(\'' + kid + '\')">' +
+                    '<div class="poster-wrap">' +
+                        (poster ? '<img src="' + escapeHtml(poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>' : '<div class="no-poster">🎬</div>') +
+                    '</div>' +
+                    '<div class="movie-info"><h3>' + escapeHtml(t) + '</h3></div>' +
+                '</div>';
+            }).join('') +
+            '</div></div>'
+        : '<div style="margin-top:20px;text-align:left;"><h3>👁 Просмотрено</h3><p style="color:#888;">Список пуст</p></div>';
+
     const recentReviewsHTML = reviews.length
         ? '<div style="margin-top:20px;text-align:left;">' +
             '<h3 style="margin-bottom:14px;">⭐ Последние оценки (' + totalReviews + ')</h3>' +
@@ -2565,10 +2586,12 @@ async function viewUserProfile(userId) {
                 '<div class="stat-card green"><div class="stat-value">' + recommendPercent + '%</div><div class="stat-label">Советует</div></div>' +
                 '<div class="stat-card blue"><div class="stat-value">' + (friends?.length || 0) + '</div><div class="stat-label">Друзей</div></div>' +
                 '<div class="stat-card"><div class="stat-value">' + visibleWatchlist.length + '</div><div class="stat-label">Хочу посмотреть</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + visibleWatched.length + '</div><div class="stat-label">Просмотрено</div></div>' +
             '</div>' +
             distributionHTML +
             recentReviewsHTML +
             watchlistHTML +
+            watchedHTML +
         '</div>';
 }
 
