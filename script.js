@@ -1345,16 +1345,16 @@ function buildReviewHTML(r) {
         '<div class="review-comments" id="comments-list-' + r.id + '"></div>';
 
     return '<div class="review-item" id="review-' + r.id + '">' +
-        '<div style="display:flex;gap:16px;">' +
-            getPosterHtml(r._poster, r.movies?.name || 'Фильм', '80px', '120px', '1.8rem') +
-            '<div style="flex:1;min-width:0;">' +
-                '<div class="review-header-row">' +
-                    '<span class="review-username">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' +
+        '<div class="review-main">' +
+            '<div class="review-poster">' +
+                getPosterHtml(r._poster, r.movies?.name || 'Фильм', '80px', '120px', '1.8rem') +
+            '</div>' +
+            '<div class="review-content">' +
+                '<span class="review-username">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' +
+                '<div class="review-meta-row">' +
                     (r.visibility === 'friends' ? '<span class="visibility-badge friends" title="Видно только друзьям">🔒</span>' : '') +
-                    '<div style="display:flex;align-items:center;">' +
-                        '<span class="review-rating">' + starEmoji() + ' ' + r.rating + '/10</span>' +
-                        '<span class="review-recommend ' + (r.recommend ? 'yes' : 'no') + '">' + (r.recommend ? '👍 Советую' : '👎 Не советую') + '</span>' +
-                    '</div>' +
+                    '<span class="review-rating">' + starEmoji() + ' ' + r.rating + '/10</span>' +
+                    '<span class="review-recommend ' + (r.recommend ? 'yes' : 'no') + '">' + (r.recommend ? '👍 Советую' : '👎 Не советую') + '</span>' +
                 '</div>' +
                 '<h3 class="review-movie-title" onclick="showMovieDetails(\'' + kid + '\')">' + escapeHtml(r.movies?.name || 'Фильм') + '</h3>' +
                 (r.review_text ? '<p class="review-text">"' + escapeHtml(r.review_text) + '"</p>' : '') +

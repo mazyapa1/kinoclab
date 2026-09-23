@@ -216,16 +216,9 @@ h3 { margin: 0; }
 .history-empty { text-align: center; padding: 30px 15px; color: #666; font-size: 0.9rem; }
 .history-empty span { display: block; font-size: 2.5rem; margin-bottom: 10px; opacity: 0.5; }
 
-.rate-layout { max-width: 760px; }
-.rate-card, .friends-card, .chat-card { padding: 20px; background: linear-gradient(145deg, var(--surface), #111114); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
 .form-group { margin: 18px 0; }
 label { display: block; margin-bottom: 7px; color: #d5d5dc; font-size: 0.9rem; font-weight: 650; }
-.optional { color: var(--muted); font-size: 0.78rem; font-weight: 500; }
 textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
-.selected-movie { display: flex; gap: 14px; align-items: center; margin: 18px 0; padding: 13px; background: #202027; border: 1px solid var(--border); border-radius: 12px; }
-.selected-movie img { width: 70px; height: 104px; object-fit: cover; border-radius: 8px; }
-.selected-movie h3 { margin: 0 0 4px; }
-.selected-movie p { margin: 0; color: var(--muted); }
 .rating-display { color: var(--gold); font-weight: 800; }
 .star-rating { display: flex; flex-wrap: wrap; gap: 2px; }
 .star-rating .star { display: grid; width: 32px; height: 34px; place-items: center; padding: 0; color: var(--gold); background: transparent; border: 0; border-radius: 7px; box-shadow: none; font-size: 1.55rem; line-height: 1; opacity: 0.3; transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease; }
@@ -256,14 +249,8 @@ input::placeholder, textarea::placeholder { color: #7e7e88; }
 .friends-card > input { margin-bottom: 10px; }
 .stack-list { display: flex; flex-direction: column; gap: 8px; }
 .chat-card { max-width: 900px; }
-#ai-chat .chat-card { max-width: none; width: 100%; }
-.chat-container { height: min(60vh, 520px); padding: 8px; overflow-y: auto; background: #101013; border: 1px solid var(--border); border-radius: 12px; }
-#ai-chat .chat-container { height: 600px; padding: 20px; }
 .chat-controls { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 .chat-controls input { flex: 1; }
-.file-button { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; margin: 0; cursor: pointer; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
-.file-button:hover { background: var(--surface-hover); }
-.file-button input { display: none; }
 
 .modal, .lightbox { display: none; }
 .modal.show, .lightbox.show { display: block; }
@@ -274,12 +261,6 @@ input::placeholder, textarea::placeholder { color: #7e7e88; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
 .lightbox { position: fixed; inset: 0; z-index: 500; background: rgba(0, 0, 0, 0.9); }
 .lightbox img { position: absolute; top: 50%; left: 50%; max-width: 90vw; max-height: 90vh; cursor: zoom-in; transform: translate(-50%, -50%); }
-
-#ai-chat-messages { scroll-behavior: smooth; }
-.ai-message { animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.loading-dots { display: inline-block; min-width: 50px; font-size: 1.1rem; }
-#ai-chat-messages strong { color: #ffd700; }
 
 /* ХОЧУ ПОСМОТРЕТЬ */
 #watchlist-grid .movie-card .remove-from-watchlist { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; background: rgba(0, 0, 0, 0.7); border: none; color: #fff; border-radius: 50%; cursor: pointer; font-size: 1rem; z-index: 3; transition: background 0.18s ease, transform 0.18s ease; backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; }
@@ -466,14 +447,6 @@ input::placeholder, textarea::placeholder { color: #7e7e88; }
   .btn-spin { width: 100%; }
 }
 
-@media (max-width: 620px) {
-  .page-heading .btn { width: 100%; }
-  .chat-controls { flex-wrap: wrap; }
-  .chat-controls input { min-width: 100%; order: -1; }
-  .chat-controls .btn { flex: 1; }
-  #ai-chat .chat-container { height: 400px; }
-}
-
 @media (max-width: 390px) {
   .logout-button #user-name-display { display: none; }
   .bottom-nav a small { font-size: 0.6rem; }
@@ -643,28 +616,6 @@ body.halloween .sidebar-icon {
 
 body.halloween .sidebar-icon::before {
     font-size: 1.15rem;
-}
-
-/* Кнопка переключения темы в меню профиля */
-.theme-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.88rem;
-    transition: background 0.18s ease;
-}
-
-.theme-toggle:hover {
-    background: #25252c;
-}
-
-body.halloween .theme-toggle:hover {
-    background: #2a1d3a;
 }
 
 /* Свечение на карточках фильмов */
@@ -1070,34 +1021,6 @@ body.newyear .visibility-badge.friends {
     border-color: rgba(0, 168, 232, 0.4);
 }
 
-/* Контактная почта на экране входа */
-.auth-help {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: rgba(26, 26, 26, 0.9);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: #c9c9d0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
-    z-index: 1001;
-}
-.auth-help:hover {
-    background: rgba(229, 9, 20, 0.15);
-    color: #fff;
-    border-color: rgba(229, 9, 20, 0.5);
-    transform: translateY(-2px);
-}
-
 @media (max-width: 480px) {
     .auth-help {
         right: 12px;
@@ -1127,6 +1050,7 @@ body.newyear .visibility-badge.friends {
     transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
     z-index: 1001;
 }
+
 .auth-help:hover {
     background: rgba(229, 9, 20, 0.15);
     color: #fff;
@@ -1225,4 +1149,206 @@ body.newyear .sequel-badge {
     font-size: 0.72rem;
     color: #888;
     margin-top: 4px;
+}
+
+/* ============ РЕЦЕНЗИЯ: 2-КОЛОНОЧНАЯ РАСКЛАДКА ============ */
+.review-main {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.review-poster {
+    width: 80px;
+    height: 120px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.review-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+.review-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.review-username {
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.review-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.review-movie-title {
+    margin: 2px 0 4px;
+    font-size: 1.05rem;
+    cursor: pointer;
+    color: #fff;
+    transition: color 0.18s ease;
+}
+.review-movie-title:hover { color: #ff6670; }
+.review-text {
+    color: #c7c7cf;
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.92rem;
+}
+
+/* Мобильная версия — тот же принцип, но постер меньше */
+@media (max-width: 768px) {
+    .review-main {
+        gap: 10px;
+    }
+    .review-poster {
+        width: 70px;
+        height: 105px;
+    }
+    .review-username {
+        font-size: 0.9rem;
+    }
+    .review-movie-title {
+        font-size: 0.95rem;
+    }
+    .review-text {
+        font-size: 0.86rem;
+    }
+}
+
+/* ============ ОЦЕНЁННЫЕ: мобильная раскладка ============ */
+@media (max-width: 768px) {
+    #rated-movies-list {
+        grid-template-columns: 1fr;
+    }
+
+    .rated-card {
+        flex-direction: column;
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .rated-card .rated-poster {
+        width: 100px;
+        height: 150px;
+        align-self: flex-start;
+    }
+
+    .rated-card .rated-content {
+        width: 100%;
+    }
+
+    .rated-card .rated-header {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .rated-card .rated-title {
+        font-size: 1rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rated-card .rated-rating-big {
+        padding: 5px 10px;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .rated-card .rated-review {
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+
+    .rated-card .rated-review .review-author {
+        font-size: 0.8rem;
+    }
+}
+
+/* ============ ОЦЕНЁННЫЕ: мобильная сетка ============ */
+@media (max-width: 768px) {
+    #rated-movies-list {
+        grid-template-columns: 1fr;
+    }
+
+    .rated-card {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        grid-template-areas:
+            "poster header"
+            "poster count"
+            "reviews reviews"
+            "more more";
+        gap: 6px 14px;
+        align-items: start;
+        padding: 14px;
+    }
+
+    /* Постер — на всю высоту левой колонки */
+    .rated-card .rated-poster {
+        grid-area: poster;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 2/3;
+        font-size: 2rem;
+        align-self: start;
+    }
+
+    /* .rated-content больше не мешает — дети становятся прямыми */
+    .rated-card .rated-content {
+        display: contents;
+    }
+
+    /* Заголовок + рейтинг — верхняя правая ячейка */
+    .rated-card .rated-header {
+        grid-area: header;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .rated-card .rated-title {
+        font-size: 1rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .rated-card .rated-rating-big {
+        padding: 4px 9px;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+
+    /* "1 оценка" — под заголовком, справа */
+    .rated-card .rated-count {
+        grid-area: count;
+        margin: 0;
+        font-size: 0.78rem;
+    }
+
+    /* Рецензии — на всю ширину, под постером */
+    .rated-card .rated-reviews {
+        grid-area: reviews;
+        margin-top: 8px;
+    }
+
+    .rated-card .rated-review {
+        font-size: 0.85rem;
+        padding: 10px;
+    }
+
+    /* Кнопка "Ещё N оценок" — в самом низу */
+    .rated-card .show-more {
+        grid-area: more;
+        margin-top: 4px;
+    }
 }
