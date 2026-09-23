@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Киноклуб" />
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="script.js?v=5" defer></script>
+  <script src="script.js?v=6" defer></script>
 </head>
 <body>
   <!-- Авторизация -->
@@ -74,6 +74,7 @@
           <li><a href="#" onclick="showSection('movies'); return false;">Фильмы</a></li>
           <li><a href="#" onclick="showSection('rated'); return false;">Оценённые</a></li>
           <li><a href="#" onclick="showSection('watchlist'); return false;">📌 Хочу посмотреть</a></li>
+          <li><a href="#" onclick="showSection('watched'); return false;">👁 Просмотренные</a></li>
           <li><a href="#" onclick="showSection('wheel'); return false;">Колесо</a></li>
           <li><a href="#" onclick="showSection('chat'); return false;">💬 Чат <span id="unread-badge" class="nav-badge" style="display:none;">0</span></a></li>
         </ul>
@@ -111,13 +112,13 @@
                 <h2>📽️ Недавно просмотренное</h2>
               </div>
               <select id="reviews-sort" class="sort-select" onchange="sortRecentReviews(this.value)">
+                <option value="all">Все</option>
                 <option value="date-desc">Свежие</option>
                 <option value="popular">Популярные</option>
                 <option value="rating-desc">С высоким рейтингом</option>
                 <option value="rating-asc">С низким рейтингом</option>
               </select>
             </div>
-            <!-- Поиск на главной — только на мобильных -->
             <div class="search-container home-search-mobile">
               <div class="search-box">
                 <input id="home-search" type="search" placeholder="Проверить оценку фильма..." autocomplete="off" oninput="searchHomeRated(this.value)" />
@@ -171,6 +172,13 @@
         <div id="watchlist-grid" class="movies-grid"></div>
       </section>
 
+      <section id="watched" class="section">
+        <div class="page-heading">
+          <div><p class="eyebrow">Личная история</p><h2>👁 Просмотренные <span id="watched-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
+        </div>
+        <div id="watched-grid" class="movies-grid"></div>
+      </section>
+
       <section id="rated" class="section">
         <div class="page-heading">
           <div><p class="eyebrow">Мнения участников</p><h2>⭐ Оценённые фильмы <span id="rated-count" style="color:#888;font-weight:400;font-size:0.7em;"></span></h2></div>
@@ -181,7 +189,6 @@
             <option value="date-desc">Новые</option>
           </select>
         </div>
-        <!-- Поиск в Оценённых -->
         <div class="search-container" style="margin-bottom:16px;">
           <div class="search-box">
             <input id="rated-search" type="search" placeholder="Найти фильм среди оценённых..." autocomplete="off" oninput="filterRatedMovies(this.value)" />
@@ -279,13 +286,12 @@
       </section>
     </main>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav" id="bottom-nav">
       <a href="#" onclick="showSection('home'); return false;" data-nav="home"><span>🏠</span><small>Главная</small></a>
       <a href="#" onclick="showSection('movies'); return false;" data-nav="movies"><span>🎬</span><small>Фильмы</small></a>
-      <a href="#" onclick="showSection('rated'); return false;" data-nav="rated"><span>⭐</span><small>Оценённые</small></a>
-      <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><span>📌</span><small>Смотреть</small></a>
-      <a href="#" onclick="showSection('wheel'); return false;" data-nav="wheel"><span>🎡</span><small>Колесо</small></a>
+      <a href="#" onclick="showSection('watched'); return false;" data-nav="watched"><span>👁</span><small>Просмотр</small></a>
+      <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><span>📌</span><small>Хочу</small></a>
+      <a href="#" onclick="showSection('rated'); return false;" data-nav="rated"><span>⭐</span><small>Оценки</small></a>
       <a href="#" onclick="showSection('chat'); return false;" data-nav="chat"><span>💬</span><small>Чат</small><span id="unread-badge-mobile" class="nav-badge" style="display:none;">0</span></a>
     </div>
   </div>
