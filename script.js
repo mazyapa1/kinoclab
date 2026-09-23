@@ -930,7 +930,7 @@ async function showMovieDetails(filmId) {
             }
         } catch (e) { console.error('Save movie error:', e); }
 
-        // Постер с глазиком в углу
+        // Постер с глазиком
         const posterBlock =
             '<div style="position:relative;display:inline-block;">' +
                 getPosterHtml(poster, t, '200px', '300px', '4rem') +
@@ -947,9 +947,58 @@ async function showMovieDetails(filmId) {
             '<a href="https://www.kinopoisk.ru/film/' + filmId + '/" target="_blank" style="background:#007bff;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;display:inline-block;">▶ Смотреть</a>' +
             '<button onclick="closeModal(); openRatingModal(\'' + filmId + '\');" style="background:#e50914;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;">' + starEmoji() + ' Оценить</button>' +
             (dbMovieId ? '<button class="watchlist-btn' + watchlistBtnClass + '" onclick="toggleWatchlistFromModal(\'' + dbMovieId + '\', ' + kid + ', this)">' + watchlistBtnText + '</button>' : '') +
-            '</div>';
+            '</div>' +
+            '<div id="sequels-block" style="margin-top:24px;"></div>';
+
         openModal('movie-modal');
+
+        // Загружаем сиквелы/приквелы асинхронно
+        loadSequelsAndPrequels(filmId);
     } catch (e) { console.error(e); showNotification('Ошибка загрузки фильма', 'error'); }
+}
+
+async function loadSequelsAndPrequels(filmId) {
+    const container = document.getElementById('sequels-block');
+    if (!container) return;
+    container.innerHTML = '<p style="color:#888;font-size:0.9rem;">Загрузка связанных фильмов...</p>';
+
+    try {
+        const { data } = await supabaseClient.functions.invoke('get-sequels-prequels', { body: { filmId } });
+        const items = data?.items || [];
+        if (!items.length) { container.innerHTML = ''; return; }
+
+        const relationLabels = {
+            SEQUEL: '🎬 Сиквел',
+            PREQUEL: '⏪ Приквел',
+            REMAKE: '🔄 Ремейк',
+            SPINOFF: '🌟 Спин-офф',
+        };
+
+        const html =
+            '<h3 style="margin:0 0 14px;font-size:1.05rem;">🎥 Связанные фильмы</h3>' +
+            '<div class="sequels-grid">' +
+            items.map(f => {
+                const label = relationLabels[f.relationType] || '🎞 Связанный';
+                return '<div class="sequel-card" onclick="showMovieDetails(\'' + f.filmId + '\')">' +
+                    '<div class="sequel-poster">' +
+                        (f.posterUrl
+                            ? '<img src="' + escapeHtml(f.posterUrl) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>'
+                            : '<div class="no-poster">🎬</div>') +
+                    '</div>' +
+                    '<div class="sequel-info">' +
+                        '<div class="sequel-badge">' + label + '</div>' +
+                        '<div class="sequel-title">' + escapeHtml(f.nameRu || f.nameEn) + '</div>' +
+                        (f.year ? '<div class="sequel-year">' + f.year + '</div>' : '') +
+                    '</div>' +
+                '</div>';
+            }).join('') +
+            '</div>';
+
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('sequels error:', e);
+        container.innerHTML = '';
+    }
 }
 
 async function toggleWatchedFromModal(kinopoiskId, movieName, posterUrl) {
