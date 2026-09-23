@@ -2,6 +2,10 @@ const SUPABASE_URL = 'https://xekcmdkfdnrxnxpwkxhu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhla2NtZGtmZG5yeG54cHdreGh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5ODUwMjMsImV4cCI6MjEwMjU2MTAyM30.wFHaiZTbPxf8gHZIZrSHoQqVTlJdrQvVYVudpAFCLoI';
 
 // ============ ПЕРЕМЕННЫЕ ============
+let currentGenreFilter = null; // {id, name}
+let currentMoviesPage = 1;
+let isLoadingMore = false;
+let hasMoreGenreMovies = true;
 let supabaseClient;
 let currentUser = null;
 let currentUserProfile = null;
@@ -49,6 +53,7 @@ let typingTimeout = null;
 let openMenuEl = null;
 let currentGlobalTheme = null;
 let myFriendIdsCache = null;
+let watchedMovieIds = new Set(); // ID фильмов, которые текущий юзер отметил "просмотрено"
 const kinopoiskMovieCache = new Map();
 
 try {
@@ -110,7 +115,6 @@ function escapeForOnclick(value) {
         .replace(/>/g, '&gt;');
 }
 
-// Иконка звезды с учётом активной темы
 function starEmoji() {
     if (currentGlobalTheme === 'halloween') return '🎃';
     if (currentGlobalTheme === 'newyear') return '⛄';
@@ -142,7 +146,7 @@ async function getPosterFromAPI(kinopoiskId) {
 function isAdmin() { return currentUserProfile?.role === 'admin'; }
 function canEditReview(uid) { return isAdmin() || uid === currentUser?.id; }
 
-// ============ ДРУЗЬЯ / ВИДИМОСТЬ ОТЗЫВОВ ============
+// ============ ДРУЗЬЯ ============
 async function getMyFriendIds() {
     if (myFriendIdsCache) return myFriendIdsCache;
     if (!currentUser?.id) return new Set();
@@ -160,6 +164,45 @@ function canSeeReview(review, friendIds) {
     if (isAdmin()) return true;
     if (review.visibility !== 'friends') return true;
     return friendIds.has(review.user_id);
+}
+
+// ============ ПРОСМОТРЕНО ============
+async function loadWatchedMovies() {
+    if (!currentUser?.id) return;
+    try {
+        const { data } = await supabaseClient
+            .from('watched')
+            .select('movie_id')
+            .eq('user_id', currentUser.id);
+        watchedMovieIds = new Set((data || []).map(r => String(r.movie_id)));
+    } catch (e) {
+        watchedMovieIds = new Set();
+    }
+}
+
+async function toggleWatched(movieId, kinopoiskId, btnEl) {
+    if (!currentUser) return;
+    const movieIdStr = String(movieId);
+    const isWatched = watchedMovieIds.has(movieIdStr);
+
+    try {
+        if (isWatched) {
+            await supabaseClient.from('watched').delete().eq('user_id', currentUser.id).eq('movie_id', movieId);
+            watchedMovieIds.delete(movieIdStr);
+            if (btnEl) { btnEl.classList.remove('active'); btnEl.innerHTML = '👁'; }
+            showNotification('Убрано из просмотренных', 'info');
+        } else {
+            await supabaseClient.from('watched').insert({ user_id: currentUser.id, movie_id: movieId });
+            watchedMovieIds.add(movieIdStr);
+            if (btnEl) { btnEl.classList.add('active'); btnEl.innerHTML = '✅'; }
+            showNotification('Отмечено как просмотрено', 'success');
+            // Убираем из watchlist
+            await supabaseClient.from('watchlist').delete().eq('user_id', currentUser.id).eq('movie_id', movieId);
+        }
+    } catch (e) {
+        console.error('toggleWatched error:', e);
+        showNotification('Ошибка: ' + (e.message || ''), 'error');
+    }
 }
 
 function pluralizeOcenka(count) {
@@ -419,28 +462,6 @@ async function showNotifications() {
 }
 
 // ============ АВТОРИЗАЦИЯ ============
-document.addEventListener('DOMContentLoaded', async () => {
-    loadGlobalTheme();
-    subscribeToTheme();
-
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        await loadUserProfile();
-        subscribeToNotifications();
-        showMainApp();
-        startPresence();
-        subscribeToMessages();
-        subscribeToPresence();
-        checkUnreadMessages();
-        if (!intervalsStarted) {
-            intervalsStarted = true;
-            setInterval(checkUnreadMessages, 120000);
-        }
-        document.querySelectorAll('.modal, .lightbox').forEach(m => m.classList.remove('show'));
-    }
-});
-
 function switchAuthTab(tab) {
     document.querySelectorAll('.auth-tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tab);
@@ -449,7 +470,6 @@ function switchAuthTab(tab) {
     const registerForm = document.getElementById('register-form');
     if (loginForm) loginForm.style.display = tab === 'login' ? 'block' : 'none';
     if (registerForm) registerForm.style.display = tab === 'register' ? 'block' : 'none';
-
     const authErr = document.getElementById('auth-error');
     const regErr = document.getElementById('register-error');
     if (authErr) authErr.hidden = true;
@@ -462,96 +482,27 @@ function showAuthError(el, msg) {
     el.hidden = false;
 }
 
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errEl = document.getElementById('register-error');
-    errEl.hidden = true;
+document.addEventListener('DOMContentLoaded', async () => {
+    loadGlobalTheme();
+    subscribeToTheme();
 
-    const username = document.getElementById('register-username').value.trim();
-    const email = document.getElementById('register-email').value.trim();
-    const password = document.getElementById('register-password').value;
-    const password2 = document.getElementById('register-password2').value;
-
-    // Валидация
-    if (username.length < 3) return showAuthError(errEl, 'Ник минимум 3 символа');
-    if (!/^[\w\-. ]+$/.test(username)) return showAuthError(errEl, 'Ник может содержать только буквы, цифры, пробел, ".", "-", "_"');
-    if (password.length < 6) return showAuthError(errEl, 'Пароль минимум 6 символов');
-    if (password !== password2) return showAuthError(errEl, 'Пароли не совпадают');
-
-    // Проверка, что ник не занят
-    const { data: existing } = await supabaseClient
-        .from('profiles')
-        .select('id')
-        .ilike('username', username)
-        .maybeSingle();
-    if (existing) return showAuthError(errEl, 'Такой ник уже занят, выберите другой');
-
-    // Регистрация через Supabase
-    const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-            data: { username }  // попадёт в raw_user_meta_data, триггер подхватит
-        }
-    });
-
-    if (error) {
-        const msg = (error.message || '').toLowerCase();
-    
-        // Email уже зарегистрирован
-        if (
-            msg.includes('already registered') ||
-            msg.includes('already been registered') ||
-            msg.includes('user already exists') ||
-            msg.includes('email address is already') ||
-            msg.includes('email exists') ||
-            error.status === 422
-        ) {
-            return showAuthError(errEl, 'Этот email уже зарегистрирован. Войдите или восстановите пароль.');
-        }
-    
-        // Проблемы с паролем
-        if (msg.includes('password')) {
-            return showAuthError(errEl, 'Пароль слишком простой или короткий (минимум 6 символов)');
-        }
-    
-        // Rate limit
-        if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('for security purposes')) {
-            return showAuthError(errEl, 'Слишком много попыток. Подождите пару минут.');
-        }
-    
-        // Некорректный email
-        if (msg.includes('invalid email') || msg.includes('unable to validate email')) {
-            return showAuthError(errEl, 'Некорректный email');
-        }
-    
-        // Email-подтверждение (не должно сюда попадать при signUp, но на всякий)
-        if (msg.includes('email not confirmed')) {
-            return showAuthError(errEl, 'Подтвердите email — проверьте почту');
-        }
-    
-        // Всё остальное
-        return showAuthError(errEl, error.message || 'Ошибка регистрации');
-    }
-
-    // Вариант 1: подтверждение email ВЫКЛЮЧЕНО → сессия есть сразу
-    if (data.session) {
-        currentUser = data.user;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+        currentUser = session.user;
         await loadUserProfile();
+        await loadWatchedMovies();
+        subscribeToNotifications();
         showMainApp();
         startPresence();
         subscribeToMessages();
-        subscribeToNotifications();
         subscribeToPresence();
         checkUnreadMessages();
-        return;
+        if (!intervalsStarted) {
+            intervalsStarted = true;
+            setInterval(checkUnreadMessages, 120000);
+        }
+        document.querySelectorAll('.modal, .lightbox').forEach(m => m.classList.remove('show'));
     }
-
-    // Вариант 2: подтверждение email ВКЛЮЧЕНО → ждём письма
-    errEl.style.color = '#7cd47c';
-    errEl.hidden = false;
-    errEl.textContent = '✅ Аккаунт создан! Проверьте почту (' + email + ') и подтвердите регистрацию.';
-    setTimeout(() => switchAuthTab('login'), 5000);
 });
 
 document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -568,46 +519,21 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         return;
     }
 
-    // Определяем, email это или ник
-    // Проверка: есть @ и точка в домене → считаем email
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginInput);
-
     let email = loginInput;
 
     if (!isEmail) {
-        // Ищем профиль по нику (регистронезависимо)
-        const { data: profile, error: lookupError } = await supabaseClient
-            .from('profiles')
-            .select('id')
-            .ilike('username', loginInput)
-            .maybeSingle();
-
-        if (lookupError || !profile) {
-            errEl.textContent = '❌ Пользователь с таким ником не найден';
-            errEl.hidden = false;
-            return;
-        }
-
-        // Достаём email из auth.users через RPC или через профиль,
-        // если он там есть. Если нет — используем фичу Supabase: 
-        // admin-функция не доступна с anon-ключом, поэтому достаём через email в профиле.
-        // Ниже — резервный путь через RPC.
         const { data: emailData, error: emailError } = await supabaseClient
             .rpc('get_email_by_username', { uname: loginInput });
-
         if (emailError || !emailData) {
-            errEl.textContent = '❌ Не удалось найти email. Войдите по почте.';
+            errEl.textContent = '❌ Пользователь с таким ником не найден';
             errEl.hidden = false;
             return;
         }
         email = emailData;
     }
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-    });
-
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
         const msg = (error.message || '').toLowerCase();
         if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
@@ -623,12 +549,78 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
     currentUser = data.user;
     await loadUserProfile();
+    await loadWatchedMovies();
     showMainApp();
     startPresence();
     subscribeToMessages();
     subscribeToNotifications();
     subscribeToPresence();
     checkUnreadMessages();
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('register-error');
+    errEl.hidden = true;
+
+    const username = document.getElementById('register-username').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    const password2 = document.getElementById('register-password2').value;
+
+    if (username.length < 3) return showAuthError(errEl, 'Ник минимум 3 символа');
+    if (!/^[\w\-. ]+$/.test(username)) return showAuthError(errEl, 'Ник может содержать только буквы, цифры, пробел, ".", "-", "_"');
+    if (password.length < 6) return showAuthError(errEl, 'Пароль минимум 6 символов');
+    if (password !== password2) return showAuthError(errEl, 'Пароли не совпадают');
+
+    const { data: existing } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+    if (existing) return showAuthError(errEl, 'Такой ник уже занят, выберите другой');
+
+    const { data, error } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
+    });
+
+    if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (
+            msg.includes('already registered') ||
+            msg.includes('already been registered') ||
+            msg.includes('user already exists') ||
+            msg.includes('email address is already') ||
+            msg.includes('email exists') ||
+            error.status === 422
+        ) {
+            return showAuthError(errEl, 'Этот email уже зарегистрирован. Войдите или восстановите пароль.');
+        }
+        if (msg.includes('password')) return showAuthError(errEl, 'Пароль слишком простой или короткий');
+        if (msg.includes('rate limit') || msg.includes('too many')) return showAuthError(errEl, 'Слишком много попыток. Подождите пару минут.');
+        if (msg.includes('invalid email')) return showAuthError(errEl, 'Некорректный email');
+        return showAuthError(errEl, error.message || 'Ошибка регистрации');
+    }
+
+    if (data.session) {
+        currentUser = data.user;
+        await loadUserProfile();
+        await loadWatchedMovies();
+        showMainApp();
+        startPresence();
+        subscribeToMessages();
+        subscribeToNotifications();
+        subscribeToPresence();
+        checkUnreadMessages();
+        return;
+    }
+
+    errEl.style.color = '#7cd47c';
+    errEl.hidden = false;
+    errEl.textContent = '✅ Аккаунт создан! Проверьте почту (' + email + ') и подтвердите регистрацию.';
+    setTimeout(() => switchAuthTab('login'), 5000);
 });
 
 async function loadUserProfile() {
@@ -680,7 +672,10 @@ function showSection(s) {
     });
 
     const loaders = {
-        'home': () => { if (!recentReviewsCache) loadRecentReviews(); },
+        'home': () => {
+            if (!recentReviewsCache) loadRecentReviews();
+            if (!ratedMoviesData.length) loadRatedMovies();
+        },
         'movies': () => { loadAllMovies(true); },
         'watchlist': () => { loadWatchlist(); },
         'rated': () => loadRatedMovies(),
@@ -758,20 +753,6 @@ async function selectMovie(filmId) {
     } catch (e) {}
 }
 
-function resetRateForm() {
-    const form = document.getElementById('review-form');
-    form.style.display = 'none';
-    form.hidden = true;
-    document.getElementById('movie-search').value = '';
-    document.getElementById('selected-movie-info').innerHTML = '';
-    document.getElementById('search-results').innerHTML = '';
-    document.getElementById('suggestions').classList.remove('active');
-    document.getElementById('suggestions').innerHTML = '';
-    selectedRating = 0;
-    document.getElementById('rating-display').textContent = '0/10';
-    document.querySelectorAll('#star-rating .star').forEach(s => { s.classList.remove('active'); s.style.opacity = '0.3'; });
-}
-
 // ============ ФИЛЬМЫ ============
 function filterByCategory(c, e) {
     currentCategoryFilter = c;
@@ -832,15 +813,30 @@ async function loadAllMovies(reset = false) {
     isLoadingMovies = false;
 }
 
-function renderMovies(films) {
+async function renderMovies(films) {
     const c = document.getElementById('movies-grid');
     if (!c) return;
     const countEl = document.getElementById('movies-count');
     if (countEl) countEl.textContent = '(' + films.length + ')';
+
+    // Подгружаем ID фильмов из movies по kinopoisk_id для метки "просмотрено"
+    const kidList = films.map(f => parseInt(f.filmId || f.id)).filter(n => !isNaN(n));
+    let dbMovieMap = {};
+    if (kidList.length) {
+        try {
+            const { data: dbMovies } = await supabaseClient
+                .from('movies')
+                .select('id, kinopoisk_id')
+                .in('kinopoisk_id', kidList);
+            (dbMovies || []).forEach(m => { dbMovieMap[m.kinopoisk_id] = m.id; });
+        } catch (e) {}
+    }
+
     c.innerHTML = films.map(f => {
         const t = f.nameRu || f.nameEn || f.name || '';
         if (!t) return '';
         const id = f.filmId || f.id;
+        const dbId = dbMovieMap[id] || null;
         const poster = f.posterUrl || f.cover_url || '';
         const genres = (f.genres || []).map(g => g.genre);
         const year = f.year || '';
@@ -856,8 +852,16 @@ function renderMovies(films) {
         const genresHtml = genres.length
             ? '<div class="movie-genres">' + genres.slice(0, 3).map(g => '<span>' + escapeHtml(g) + '</span>').join('') + '</div>'
             : '';
+
+        // Метка "Просмотрено"
+        let watchedBtn = '';
+        if (dbId) {
+            const isWatched = watchedMovieIds.has(String(dbId));
+            watchedBtn = '<button class="watched-btn' + (isWatched ? ' active' : '') + '" onclick="event.stopPropagation(); toggleWatched(\'' + dbId + '\', ' + id + ', this)" title="Просмотрено">' + (isWatched ? '✅' : '👁') + '</button>';
+        }
+
         return '<div class="movie-card" onclick="showMovieDetails(\'' + id + '\')">' +
-            '<div class="poster-wrap">' + posterHtml + ratingBadge + '</div>' +
+            '<div class="poster-wrap">' + posterHtml + ratingBadge + watchedBtn + '</div>' +
             '<div class="movie-info">' +
                 '<h3>' + escapeHtml(t) + '</h3>' +
                 '<div class="movie-meta">' + (year ? '<span class="year">' + year + '</span>' : '') + '</div>' +
@@ -936,7 +940,7 @@ async function showMovieDetails(filmId) {
             '<p>' + escapeHtml(description) + '</p>' +
             '<div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:10px;">' +
             '<a href="https://www.kinopoisk.ru/film/' + filmId + '/" target="_blank" style="background:#007bff;color:white;padding:10px 20px;border-radius:5px;text-decoration:none;display:inline-block;">▶ Смотреть</a>' +
-            '<button onclick="closeModal();showSection(\'rate\');selectMovie(\'' + filmId + '\');" style="background:#e50914;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;">' + starEmoji() + ' Оценить</button>' +
+            '<button onclick="closeModal(); openRatingModal(\'' + filmId + '\');" style="background:#e50914;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;">' + starEmoji() + ' Оценить</button>' +
             (dbMovieId ? '<button class="watchlist-btn' + watchlistBtnClass + '" onclick="toggleWatchlistFromModal(\'' + dbMovieId + '\', ' + parseInt(filmId) + ', this)">' + watchlistBtnText + '</button>' : '') +
             '</div>';
         openModal('movie-modal');
@@ -969,10 +973,14 @@ async function loadWatchlist() {
             const t = w.movies?.name || 'Фильм';
             const kid = w.kinopoisk_id || w.movies?.kinopoisk_id;
             const poster = w.movies?.cover_url || '';
+            const dbId = w.movie_id;
+            const isWatched = watchedMovieIds.has(String(dbId));
+            const watchedBtn = '<button class="watched-btn' + (isWatched ? ' active' : '') + '" onclick="event.stopPropagation(); toggleWatched(\'' + dbId + '\', ' + kid + ', this)" title="Просмотрено">' + (isWatched ? '✅' : '👁') + '</button>';
             return '<div class="movie-card" onclick="showMovieDetails(\'' + kid + '\')">' +
                 '<button class="remove-from-watchlist" onclick="event.stopPropagation(); removeFromWatchlist(\'' + w.id + '\')" title="Убрать">✕</button>' +
                 '<div class="poster-wrap">' +
                     (poster ? '<img src="' + escapeHtml(poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>' : '<div class="no-poster">🎬</div>') +
+                    watchedBtn +
                 '</div>' +
                 '<div class="movie-info"><h3>' + escapeHtml(t) + '</h3></div>' +
             '</div>';
@@ -1044,6 +1052,100 @@ async function loadRatedMovies() {
 
 function sortRatedMovies(sortBy) { currentRatedSort = sortBy; applyRatedSort(); }
 
+function filterRatedMovies(query) {
+    const statusEl = document.getElementById('rated-search-status');
+    const listEl = document.getElementById('rated-movies-list');
+    const countEl = document.getElementById('rated-count');
+    const q = (query || '').trim().toLowerCase();
+
+    if (!q) {
+        statusEl.style.display = 'none';
+        applyRatedSort();
+        return;
+    }
+
+    if (!ratedMoviesData.length) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#888';
+        statusEl.textContent = 'Загрузка...';
+        return;
+    }
+
+    const filtered = ratedMoviesData.filter(m => m.name.toLowerCase().includes(q));
+
+    if (filtered.length === 0) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#ff8888';
+        statusEl.textContent = '❌ Фильм «' + query.trim() + '» ещё не оценён';
+        listEl.innerHTML = '';
+        if (countEl) countEl.textContent = '(0)';
+        return;
+    }
+
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#7cd47c';
+    statusEl.textContent = '✅ Найдено: ' + filtered.length;
+    renderRatedMovies(filtered);
+}
+
+async function searchHomeRated(query) {
+    const statusEl = document.getElementById('home-search-status');
+    const container = document.getElementById('recent-reviews');
+    const q = (query || '').trim().toLowerCase();
+
+    if (!q) {
+        statusEl.style.display = 'none';
+        recentReviewsCache = null;
+        loadRecentReviews(true);
+        return;
+    }
+
+    if (!ratedMoviesData.length) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#888';
+        statusEl.textContent = 'Загрузка...';
+        await loadRatedMovies();
+    }
+
+    const filtered = ratedMoviesData.filter(m => m.name.toLowerCase().includes(q));
+
+    if (filtered.length === 0) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#ff8888';
+        statusEl.textContent = '❌ Фильм «' + query.trim() + '» ещё не оценён';
+        container.innerHTML = '';
+        return;
+    }
+
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#7cd47c';
+    statusEl.textContent = '✅ Найдено фильмов: ' + filtered.length;
+
+    container.innerHTML = filtered.map(m => {
+        const posterHtml = m.poster
+            ? '<img class="rated-poster" src="' + escapeHtml(m.poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="rated-poster" style="display:none;">🎬</div>'
+            : '<div class="rated-poster">🎬</div>';
+        const reviewsHtml = m.reviews.slice(0, 3).map(r =>
+            '<div class="rated-review">' +
+                '<span class="review-author">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' +
+                '<div class="review-meta"><span class="review-score">' + starEmoji() + ' ' + r.rating + '/10</span><span>' + (r.recommend ? '👍' : '👎') + '</span></div>' +
+                (r.review_text ? escapeHtml(r.review_text) : '<span style="color:#666;">Без рецензии</span>') +
+            '</div>'
+        ).join('');
+        return '<div class="rated-card" onclick="showMovieDetails(\'' + m.kid + '\')">' +
+            posterHtml +
+            '<div class="rated-content">' +
+                '<div class="rated-header">' +
+                    '<h3 class="rated-title">' + escapeHtml(m.name) + '</h3>' +
+                    '<div class="rated-rating-big">' + starEmoji() + ' ' + m.avgRating.toFixed(1) + '</div>' +
+                '</div>' +
+                '<p class="rated-count">' + pluralizeOcenka(m.reviewsCount) + '</p>' +
+                '<div class="rated-reviews">' + reviewsHtml + '</div>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
 function applyRatedSort() {
     const sorted = [...ratedMoviesData];
     if (currentRatedSort === 'rating-desc') sorted.sort((a, b) => b.avgRating - a.avgRating);
@@ -1063,9 +1165,8 @@ function renderRatedMovies(movies) {
             : '<div class="rated-poster">🎬</div>';
         const reviewsHtml = m.reviews.slice(0, 3).map(r => {
             const text = r.review_text ? escapeHtml(r.review_text) : '';
-            const visBadge = r.visibility === 'friends' ? '<span class="visibility-badge friends">🔒 Только друзьям</span>' : '';
             return '<div class="rated-review">' +
-                '<span class="review-author">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' + visBadge +
+                '<span class="review-author">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' +
                 '<div class="review-meta"><span class="review-score">' + starEmoji() + ' ' + r.rating + '/10</span><span>' + (r.recommend ? '👍' : '👎') + '</span></div>' +
                 (text ? text : '<span style="color:#666;">Без рецензии</span>') +
             '</div>';
@@ -1185,16 +1286,12 @@ function buildReviewHTML(r) {
         r._comments.map(cm => buildCommentHTML(cm, r.id)).join('') + '</div>' :
         '<div class="review-comments" id="comments-list-' + r.id + '"></div>';
 
-    const visibilityBadge = r.visibility === 'friends'
-        ? '<span class="visibility-badge friends" title="Видно только друзьям автора">🔒 Только друзьям</span>'
-        : '';
-
     return '<div class="review-item" id="review-' + r.id + '">' +
         '<div style="display:flex;gap:16px;">' +
             getPosterHtml(r._poster, r.movies?.name || 'Фильм', '80px', '120px', '1.8rem') +
             '<div style="flex:1;min-width:0;">' +
                 '<div class="review-header-row">' +
-                    '<span class="review-username">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' + visibilityBadge +
+                    '<span class="review-username">👤 ' + escapeHtml(r.profiles?.username || 'Пользователь') + '</span>' + (r.visibility === 'friends' ? '<span class="visibility-badge friends" title="Видно только друзьям">🔒</span>' : '') +
                     '<div style="display:flex;align-items:center;">' +
                         '<span class="review-rating">' + starEmoji() + ' ' + r.rating + '/10</span>' +
                         '<span class="review-recommend ' + (r.recommend ? 'yes' : 'no') + '">' + (r.recommend ? '👍 Советую' : '👎 Не советую') + '</span>' +
@@ -1218,37 +1315,6 @@ function buildReviewHTML(r) {
             '<button class="delete" onclick="deleteReview(\'' + r.id + '\')">🗑 Удалить</button>' +
         '</div>' : '') +
     '</div>';
-}
-
-async function toggleReviewVisibility(reviewId) {
-    if (!currentUser) return;
-    if (!isAdmin()) {
-        showNotification('Менять видимость может только админ', 'error');
-        return;
-    }
-    const { data: r } = await supabaseClient
-        .from('reviews')
-        .select('visibility')
-        .eq('id', reviewId)
-        .single();
-    if (!r) return;
-    const newVisibility = r.visibility === 'friends' ? 'public' : 'friends';
-    const { error } = await supabaseClient
-        .from('reviews')
-        .update({ visibility: newVisibility })
-        .eq('id', reviewId);
-    if (error) {
-        showNotification('Ошибка: ' + error.message, 'error');
-        return;
-    }
-    showNotification(
-        newVisibility === 'friends' ? '🔒 Видно только друзьям' : '🌍 Видно всем',
-        'success'
-    );
-    recentReviewsCache = null;
-    if (currentSection === 'home') loadRecentReviews(true);
-    else if (currentSection === 'rated') loadRatedMovies();
-    else if (currentSection === 'profile') loadProfile();
 }
 
 async function toggleReviewReaction(reviewId, reaction) {
@@ -1427,6 +1493,12 @@ document.getElementById('review-form').addEventListener('submit', async (e) => {
             await supabaseClient.from('reviews').insert([{ user_id: currentUser.id, movie_id: movieId, rating, review_text: reviewText || null, recommend, visibility: 'friends' }]);
             showNotification('Оценка добавлена!', 'success');
         }
+        // Автоматически отмечаем как просмотрено
+        await supabaseClient.from('watched').upsert({ user_id: currentUser.id, movie_id: movieId }, { onConflict: 'user_id,movie_id' });
+        watchedMovieIds.add(String(movieId));
+        // Убираем из watchlist
+        await supabaseClient.from('watchlist').delete().eq('user_id', currentUser.id).eq('movie_id', movieId);
+
         resetRateForm();
         recentReviewsCache = null;
         showSection('home');
@@ -1763,7 +1835,10 @@ async function openChat(fid, friendName, avatarUrl, isOnline) {
     forceScrollToBottom();
     const scrollBtn = document.getElementById('tg-scroll-bottom');
     if (scrollBtn) scrollBtn.style.display = 'none';
-    setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+    // Не фокусируемся на мобиле — иначе вылезает клавиатура и перекрывает чат
+    if (window.innerWidth > 768) {
+        setTimeout(() => document.getElementById('chat-input')?.focus(), 100);
+    }
     if (window._chatStatusInterval) clearInterval(window._chatStatusInterval);
     window._chatStatusInterval = setInterval(async () => {
         if (!isChatOpen || !currentChatFriend) return;
@@ -2135,7 +2210,7 @@ document.addEventListener('click', (e) => {
     if (picker && !e.target.closest('.tg-icon-btn') && !picker.contains(e.target)) picker.style.display = 'none';
 });
 
-// ============ ПРОФИЛЬ ============
+// ============ ПРОФИЛЬ (СВОЙ) ============
 async function loadProfile() {
     const c = document.getElementById('profile-info');
     if (!c) return;
@@ -2260,6 +2335,120 @@ async function loadProfile() {
     }
 }
 
+// ============ ПРОФИЛЬ ДРУГА ============
+async function viewUserProfile(userId) {
+    const body = document.getElementById('user-profile-body');
+    body.innerHTML = '<p style="text-align:center;color:#888;padding:40px;">Загрузка...</p>';
+    openModal('user-profile-modal');
+
+    const [
+        { data: profile },
+        { data: allReviews },
+        { data: friends },
+        { data: watchlist }
+    ] = await Promise.all([
+        supabaseClient.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabaseClient.from('reviews').select('*, movies(name, kinopoisk_id)').eq('user_id', userId),
+        supabaseClient.from('friendships').select('*').eq('user_id', userId),
+        supabaseClient.from('watchlist')
+            .select('*, movies(id, name, kinopoisk_id, cover_url)')
+            .eq('user_id', userId)
+            .order('added_at', { ascending: false })
+    ]);
+
+    if (!profile) {
+        body.innerHTML = '<p>Профиль не найден</p>';
+        return;
+    }
+
+    const friendIds = await getMyFriendIds();
+    const reviews = (allReviews || []).filter(r => canSeeReview(r, friendIds));
+    const visibleWatchlist = watchlist || [];
+
+    const avatar = profile.avatar_url || '';
+    const username = profile.username || 'Пользователь';
+
+    const totalReviews = reviews.length;
+    const avgRating = totalReviews > 0
+        ? (reviews.reduce((s, r) => s + r.rating, 0) / totalReviews).toFixed(1)
+        : '—';
+    const recommendCount = reviews.filter(r => r.recommend).length;
+    const recommendPercent = totalReviews > 0
+        ? Math.round((recommendCount / totalReviews) * 100)
+        : 0;
+
+    const distribution = {};
+    for (let i = 1; i <= 10; i++) distribution[i] = 0;
+    reviews.forEach(r => { distribution[r.rating] = (distribution[r.rating] || 0) + 1; });
+    const maxCount = Math.max(...Object.values(distribution), 1);
+
+    const distributionHTML = totalReviews > 0
+        ? '<div class="rating-distribution">' +
+            '<h3>📊 Распределение оценок</h3>' +
+            '<div class="rating-bars">' +
+            Object.entries(distribution).map(([rating, count]) => {
+                const height = (count / maxCount) * 100;
+                return '<div class="rating-bar">' +
+                    '<div class="bar-count">' + (count || '') + '</div>' +
+                    '<div class="bar" style="height:' + (count > 0 ? Math.max(height, 5) : 2) + '%"></div>' +
+                    '<div class="bar-label">' + rating + '</div>' +
+                '</div>';
+            }).join('') +
+            '</div></div>'
+        : '';
+
+    const watchlistHTML = visibleWatchlist.length
+        ? '<div style="margin-top:20px;text-align:left;">' +
+            '<h3 style="margin-bottom:14px;">📌 Хочу посмотреть (' + visibleWatchlist.length + ')</h3>' +
+            '<div class="movies-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;">' +
+            visibleWatchlist.map(w => {
+                const t = w.movies?.name || 'Фильм';
+                const kid = w.kinopoisk_id || w.movies?.kinopoisk_id;
+                const poster = w.movies?.cover_url || '';
+                return '<div class="movie-card" style="cursor:pointer;" onclick="closeUserProfileModal(); showMovieDetails(\'' + kid + '\')">' +
+                    '<div class="poster-wrap">' +
+                        (poster ? '<img src="' + escapeHtml(poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>' : '<div class="no-poster">🎬</div>') +
+                    '</div>' +
+                    '<div class="movie-info"><h3>' + escapeHtml(t) + '</h3></div>' +
+                '</div>';
+            }).join('') +
+            '</div></div>'
+        : '<div style="margin-top:20px;text-align:left;"><h3>📌 Хочу посмотреть</h3><p style="color:#888;">Список пуст</p></div>';
+
+    const recentReviewsHTML = reviews.length
+        ? '<div style="margin-top:20px;text-align:left;">' +
+            '<h3 style="margin-bottom:14px;">⭐ Последние оценки (' + totalReviews + ')</h3>' +
+            [...reviews]
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 10)
+                .map(r => '<div style="background:#222;padding:10px;border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">' +
+                    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🎬 ' + escapeHtml(r.movies?.name || 'Фильм') + '</span>' +
+                    '<span style="color:#ffc107;font-weight:700;margin-left:10px;">⭐ ' + r.rating + '/10</span>' +
+                '</div>').join('') +
+            '</div>'
+        : '<div style="margin-top:20px;text-align:left;"><h3>⭐ Оценки</h3><p style="color:#888;">Пока нет оценок</p></div>';
+
+    body.innerHTML =
+        '<div style="text-align:center;">' +
+            '<div style="width:100px;height:100px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:3rem;overflow:hidden;">' +
+                (avatar ? '<img src="' + escapeHtml(avatar) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '👤') +
+            '</div>' +
+            '<h2>' + escapeHtml(username) + '</h2>' +
+
+            '<div class="profile-stats">' +
+                '<div class="stat-card accent"><div class="stat-value">' + totalReviews + '</div><div class="stat-label">Оценок</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + avgRating + '</div><div class="stat-label">Средняя оценка</div></div>' +
+                '<div class="stat-card green"><div class="stat-value">' + recommendPercent + '%</div><div class="stat-label">Советует</div></div>' +
+                '<div class="stat-card blue"><div class="stat-value">' + (friends?.length || 0) + '</div><div class="stat-label">Друзей</div></div>' +
+                '<div class="stat-card"><div class="stat-value">' + visibleWatchlist.length + '</div><div class="stat-label">Хочу посмотреть</div></div>' +
+            '</div>' +
+
+            distributionHTML +
+            recentReviewsHTML +
+            watchlistHTML +
+        '</div>';
+}
+
 function toggleProfileMenu(event) {
     if (event) event.stopPropagation();
     const menu = document.getElementById('profile-menu');
@@ -2307,16 +2496,6 @@ async function changePassword() {
     const { error: updErr } = await supabaseClient.auth.updateUser({ password: newPass });
     if (updErr) { showNotification('Ошибка: ' + updErr.message, 'error'); return; }
     showNotification('Пароль изменен!', 'success');
-}
-
-async function viewUserProfile(userId) {
-    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
-    if (!profile) return;
-    const { data: allReviews } = await supabaseClient.from('reviews').select('*, movies(name)').eq('user_id', userId);
-    const friendIds = await getMyFriendIds();
-    const reviews = (allReviews || []).filter(r => canSeeReview(r, friendIds));
-    document.getElementById('user-profile-body').innerHTML = '<div style="text-align:center;"><div style="width:80px;height:80px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2.5rem;overflow:hidden;">' + (profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:100%;height:100%;object-fit:cover;" loading="lazy">' : '👤') + '</div><h2>' + escapeHtml(profile.username || 'Пользователь') + '</h2></div><div style="margin-top:20px;"><h3>Оценки (' + (reviews?.length || 0) + '):</h3>' + (reviews?.length ? reviews.map(r => '<div style="background:#222;padding:10px;border-radius:5px;margin-top:5px;">🎬 ' + escapeHtml(r.movies?.name || 'Фильм') + ' — ' + starEmoji() + ' ' + r.rating + '/10' + (r.visibility === 'friends' ? ' <span class="visibility-badge friends">🔒 Только друзьям</span>' : '') + '</div>').join('') : '<p>Нет оценок</p>') + '</div>';
-    openModal('user-profile-modal');
 }
 
 // ============ ИИ ЧАТ ============
@@ -2417,14 +2596,10 @@ function applyGlobalTheme(theme) {
 }
 
 function refreshStarredUI() {
-    // 1. Статические <span data-star> в HTML
     document.querySelectorAll('[data-star]').forEach(el => {
         el.textContent = starEmoji();
     });
-
     if (!currentUser) return;
-
-    // 2. Динамические секции
     if (currentSection === 'home') {
         recentReviewsCache = null;
         loadRecentReviews(true);
@@ -2438,8 +2613,6 @@ function refreshStarredUI() {
         loadWatchlist();
     } else if (currentSection === 'wheel') {
         loadWheelHistory();
-    } else if (currentSection === 'profile') {
-        // перерисуется при следующем заходе — здесь просто обновляем стату кнопки темы, если она есть
     }
 }
 
@@ -2476,6 +2649,293 @@ async function changeGlobalTheme(theme) {
     applyGlobalTheme(theme);
     const labels = { default: 'Обычная', halloween: '🎃 Хэллоуин', newyear: '🎄 Новогодняя' };
     showNotification('Тема для всех: ' + labels[theme], 'success');
-    // перерисовать профиль, чтобы подсветить активную кнопку
     if (currentSection === 'profile') loadProfile();
 }
+
+// ============ СЕКЦИЯ ФИЛЬМЫ (Кинопаб-стиль) ============
+
+async function loadMoviesCatalog() {
+    currentGenreFilter = null;
+    document.getElementById('movies-catalog').style.display = 'block';
+    document.getElementById('movies-genre-view').style.display = 'none';
+    document.querySelectorAll('.movies-sidebar .genre-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.movies-sidebar .genre-btn').classList.add('active');
+
+    // Загружаем все 5 рядов параллельно
+    loadRow('row-popular', { topType: 'TOP_100_POPULAR_FILMS', page: 1 });
+    loadRow('row-top250', { topType: 'TOP_250_BEST_FILMS', page: 1 });
+    loadRow('row-await', { topType: 'TOP_AWAIT_FILMS', page: 1 });
+    loadRow('row-high', { order: 'RATING', yearFrom: 1990, yearTo: new Date().getFullYear() });
+    // Новинки проката — текущий год, текущий месяц
+    const now = new Date();
+    const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+    loadRow('row-premieres', { premieresYear: now.getFullYear(), premieresMonth: months[now.getMonth()] });
+}
+
+async function loadRow(containerId, params) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    // Скелетон
+    let skeleton = '';
+    for (let i = 0; i < 6; i++) {
+        skeleton += '<div class="movie-card-h"><div class="poster-h"><div class="no-poster">🎬</div></div><div class="info-h"><h4 style="color:#444">Загрузка...</h4></div></div>';
+    }
+    c.innerHTML = skeleton;
+
+    try {
+        const { data } = await supabaseClient.functions.invoke('get-movies-by-page', { body: params });
+        const films = data?.films || [];
+        if (!films.length) { c.innerHTML = '<p style="color:#888;padding:20px;">Нет фильмов</p>'; return; }
+        c.innerHTML = films.slice(0, 20).map(f => buildHorizontalCard(f)).join('');
+    } catch (e) {
+        c.innerHTML = '<p style="color:#888;padding:20px;">Ошибка загрузки</p>';
+    }
+}
+
+function buildHorizontalCard(f) {
+    const t = f.nameRu || f.nameEn || 'Фильм';
+    const id = f.filmId;
+    const poster = f.posterUrl || '';
+    const year = f.year || '';
+    const genreText = (f.genres || []).slice(0, 2).map(g => g.genre || g).join(', ');
+    const ratingNum = parseFloat(f.rating);
+    const rating = !isNaN(ratingNum) && ratingNum > 0 ? ratingNum.toFixed(1) : '';
+    let ratingClass = 'mid';
+    if (ratingNum >= 7.5) ratingClass = 'high';
+    else if (ratingNum < 6 && ratingNum > 0) ratingClass = 'low';
+
+    const posterHtml = poster
+        ? '<img src="' + escapeHtml(poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>'
+        : '<div class="no-poster">🎬</div>';
+    const ratingChip = rating ? '<div class="rating-chip ' + ratingClass + '">' + rating + '</div>' : '';
+
+    return '<div class="movie-card-h" onclick="showMovieDetails(\'' + id + '\')">' +
+        '<div class="poster-h">' + posterHtml + ratingChip + '</div>' +
+        '<div class="info-h">' +
+            '<h4>' + escapeHtml(t) + '</h4>' +
+            '<p>' + escapeHtml((year ? year + ' · ' : '') + genreText) + '</p>' +
+        '</div>' +
+    '</div>';
+}
+
+function scrollRow(containerId, dir) {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.scrollBy({ left: dir * 500, behavior: 'smooth' });
+}
+
+async function filterByGenre(genreId, genreName) {
+    currentGenreFilter = { id: genreId, name: genreName };
+    currentMoviesPage = 1;
+    hasMoreGenreMovies = true;
+    document.getElementById('movies-catalog').style.display = 'none';
+    document.getElementById('movies-genre-view').style.display = 'block';
+    document.getElementById('genre-title').textContent = genreName;
+    document.getElementById('movies-grid').innerHTML = buildMoviesSkeletonHTML();
+    document.querySelectorAll('.movies-sidebar .genre-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    await loadGenreMovies(true);
+}
+
+async function loadGenreMovies(reset = false) {
+    if (isLoadingMore || (!reset && !hasMoreGenreMovies)) return;
+    isLoadingMore = true;
+    const c = document.getElementById('movies-grid');
+    const loader = document.getElementById('movies-loader');
+
+    try {
+        const { data } = await supabaseClient.functions.invoke('get-movies-by-page', {
+            body: {
+                page: currentMoviesPage,
+                genres: currentGenreFilter?.id,
+                order: 'NUM_VOTE'
+            }
+        });
+        const films = data?.films || [];
+        if (!films.length) {
+            hasMoreGenreMovies = false;
+            if (reset) c.innerHTML = '<p style="grid-column:1/-1;color:#888;">Фильмы не найдены</p>';
+            isLoadingMore = false;
+            if (loader) loader.style.display = 'none';
+            return;
+        }
+        const html = films.map(f => buildVerticalCard(f)).join('');
+        if (reset) c.innerHTML = html;
+        else c.insertAdjacentHTML('beforeend', html);
+        currentMoviesPage++;
+        hasMoreGenreMovies = currentMoviesPage <= (data?.totalPages || 100);
+    } catch (e) {
+        console.error(e);
+        if (reset) c.innerHTML = '<p style="grid-column:1/-1;color:#888;">Ошибка загрузки</p>';
+        hasMoreGenreMovies = false;
+    }
+    isLoadingMore = false;
+    if (loader) loader.style.display = 'none';
+}
+
+function buildVerticalCard(f) {
+    const t = f.nameRu || f.nameEn || 'Фильм';
+    const id = f.filmId;
+    const poster = f.posterUrl || '';
+    const genres = (f.genres || []).map(g => g.genre || g);
+    const year = f.year || '';
+    const ratingNum = parseFloat(f.rating);
+    const rating = !isNaN(ratingNum) && ratingNum > 0 ? ratingNum.toFixed(1) : '';
+    let ratingClass = 'mid';
+    if (ratingNum >= 7.5) ratingClass = 'high';
+    else if (ratingNum < 6 && ratingNum > 0) ratingClass = 'low';
+
+    const posterHtml = poster
+        ? '<img src="' + escapeHtml(poster) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><div class="no-poster" style="display:none;">🎬</div>'
+        : '<div class="no-poster">🎬</div>';
+    const ratingBadge = rating ? '<div class="rating-badge ' + ratingClass + '">' + starEmoji() + ' ' + rating + '</div>' : '';
+    const genresHtml = genres.length
+        ? '<div class="movie-genres">' + genres.slice(0, 3).map(g => '<span>' + escapeHtml(g) + '</span>').join('') + '</div>'
+        : '';
+
+    return '<div class="movie-card" onclick="showMovieDetails(\'' + id + '\')">' +
+        '<div class="poster-wrap">' + posterHtml + ratingBadge + '</div>' +
+        '<div class="movie-info">' +
+            '<h3>' + escapeHtml(t) + '</h3>' +
+            '<div class="movie-meta">' + (year ? '<span class="year">' + year + '</span>' : '') + '</div>' +
+            genresHtml +
+        '</div>' +
+    '</div>';
+}
+
+// ============ МОДАЛКА ОЦЕНКИ (замена секции rate) ============
+async function openRatingModal(filmId) {
+    const data = await getKinopoiskMovie(filmId);
+    if (!data) { showNotification('Не удалось загрузить фильм', 'error'); return; }
+    const t = data.nameRu || data.nameEn || '';
+
+    // Проверяем, есть ли уже отзыв
+    let existingReview = null;
+    let movieId = null;
+    try {
+        const { data: mv } = await supabaseClient.from('movies').select('id').eq('kinopoisk_id', parseInt(filmId)).maybeSingle();
+        if (mv) {
+            movieId = mv.id;
+            const { data: rv } = await supabaseClient.from('reviews').select('*').eq('user_id', currentUser.id).eq('movie_id', movieId).maybeSingle();
+            existingReview = rv;
+        }
+    } catch (e) {}
+
+    selectedRating = existingReview?.rating || 0;
+    selectedRecommend = existingReview?.recommend !== false;
+
+    document.getElementById('modal-body').innerHTML =
+        '<h2>' + starEmoji() + ' Оценить: ' + escapeHtml(t) + '</h2>' +
+        '<div class="form-group">' +
+            '<label>Оценка <span id="modal-rating-display" class="rating-display">' + (selectedRating || 0) + '/10</span></label>' +
+            '<div class="star-rating" id="modal-star-rating">' +
+                Array.from({ length: 10 }, (_, i) =>
+                    '<button type="button" class="star' + (i < selectedRating ? ' active' : '') + '" onclick="setModalRating(' + (i + 1) + ')">★</button>'
+                ).join('') +
+            '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Рекомендация</label>' +
+            '<div class="recommend-buttons">' +
+                '<button class="btn-recommend btn-recommend-yes' + (selectedRecommend ? ' active' : '') + '" type="button" onclick="setModalRecommend(true)">👍 Советую</button>' +
+                '<button class="btn-recommend btn-recommend-no' + (!selectedRecommend ? ' active' : '') + '" type="button" onclick="setModalRecommend(false)">👎 Не советую</button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="form-group">' +
+            '<label>Рецензия <span class="optional">необязательно</span></label>' +
+            '<textarea id="modal-review-text" placeholder="Что вы думаете о фильме?">' + escapeHtml(existingReview?.review_text || '') + '</textarea>' +
+        '</div>' +
+        '<div class="modal-actions">' +
+            '<button class="btn btn-primary" type="button" onclick="submitModalReview(\'' + filmId + '\', ' + (movieId ? '\'' + movieId + '\'' : 'null') + ')">' + (existingReview ? 'Обновить' : 'Опубликовать') + '</button>' +
+            '<button class="btn btn-secondary" type="button" onclick="closeModal()">Отмена</button>' +
+        '</div>';
+
+    openModal('movie-modal');
+}
+
+function setModalRating(r) {
+    selectedRating = r;
+    const el = document.getElementById('modal-rating-display');
+    if (el) el.textContent = r + '/10';
+    document.querySelectorAll('#modal-star-rating .star').forEach((s, i) => {
+        s.classList.toggle('active', i < r);
+        s.style.opacity = i < r ? '1' : '0.3';
+        s.style.color = i < r ? '#ffc107' : '';
+    });
+}
+
+function setModalRecommend(r) {
+    selectedRecommend = r;
+    document.querySelectorAll('#movie-modal .btn-recommend').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(r ? '#movie-modal .btn-recommend-yes' : '#movie-modal .btn-recommend-no');
+    if (btn) btn.classList.add('active');
+}
+
+async function submitModalReview(filmId, existingMovieId) {
+    if (!selectedRating) { showNotification('Поставьте оценку', 'error'); return; }
+    const reviewText = document.getElementById('modal-review-text').value.trim();
+    const data = await getKinopoiskMovie(filmId);
+    const movieName = data?.nameRu || data?.nameEn || 'Фильм';
+
+    try {
+        let movieId = existingMovieId;
+        if (!movieId) {
+            const { data: nm } = await supabaseClient.from('movies').insert([{ name: movieName, kinopoisk_id: parseInt(filmId) }]).select().single();
+            if (!nm) throw new Error('Ошибка сохранения фильма');
+            movieId = nm.id;
+        }
+
+        const { data: er } = await supabaseClient.from('reviews').select('id').eq('user_id', currentUser.id).eq('movie_id', movieId).maybeSingle();
+        if (er) {
+            await supabaseClient.from('reviews').update({ rating: selectedRating, review_text: reviewText || null, recommend: selectedRecommend }).eq('id', er.id);
+            showNotification('Оценка обновлена!', 'success');
+        } else {
+            await supabaseClient.from('reviews').insert([{
+                user_id: currentUser.id, movie_id: movieId, rating: selectedRating,
+                review_text: reviewText || null, recommend: selectedRecommend, visibility: 'friends'
+            }]);
+            showNotification('Оценка добавлена!', 'success');
+        }
+
+        // Автоматически отмечаем "просмотрено"
+        await supabaseClient.from('watched').upsert({ user_id: currentUser.id, movie_id: movieId }, { onConflict: 'user_id,movie_id' });
+        watchedMovieIds.add(String(movieId));
+        // Убираем из watchlist
+        await supabaseClient.from('watchlist').delete().eq('user_id', currentUser.id).eq('movie_id', movieId);
+
+        closeModal();
+        recentReviewsCache = null;
+        loadRecentReviews(true);
+    } catch (e) {
+        showNotification('Ошибка: ' + e.message, 'error');
+    }
+}
+
+async function toggleReviewVisibility(reviewId) {
+    if (!isAdmin()) {
+        showNotification('Менять видимость может только админ', 'error');
+        return;
+    }
+    const { data: r } = await supabaseClient.from('reviews').select('visibility').eq('id', reviewId).single();
+    if (!r) return;
+    const newVisibility = r.visibility === 'friends' ? 'public' : 'friends';
+    const { error } = await supabaseClient.from('reviews').update({ visibility: newVisibility }).eq('id', reviewId);
+    if (error) { showNotification('Ошибка: ' + error.message, 'error'); return; }
+    showNotification(newVisibility === 'friends' ? '🔒 Видно только друзьям' : '🌍 Видно всем', 'success');
+    recentReviewsCache = null;
+    if (currentSection === 'home') loadRecentReviews(true);
+    else if (currentSection === 'rated') loadRatedMovies();
+}
+
+// Бесконечный скролл для сетки жанра
+window.addEventListener('scroll', () => {
+    if (!currentGenreFilter) return;
+    const section = document.getElementById('movies');
+    if (!section || !section.classList.contains('active')) return;
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+        const loader = document.getElementById('movies-loader');
+        if (loader) loader.style.display = 'block';
+        loadGenreMovies(false);
+    }
+});

@@ -1002,3 +1002,142 @@ body.newyear .star-rating .star:hover {
     font-size: 1.4rem;
     letter-spacing: -0.04em;
 }
+
+/* ============ НОВОЕ: поиск на главной (только мобильные) ============ */
+.home-search-mobile { display: none; }
+@media (max-width: 768px) {
+    .home-search-mobile { display: block; margin-bottom: 16px; }
+}
+
+/* ============ НОВОЕ: кнопка "Просмотрено" на карточке ============ */
+.movie-card .watched-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    z-index: 3;
+    transition: background 0.18s ease, transform 0.18s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+}
+.movie-card .watched-btn:hover {
+    background: rgba(37, 166, 90, 0.9);
+    transform: scale(1.1);
+    opacity: 1;
+}
+.movie-card .watched-btn.active {
+    background: rgba(37, 166, 90, 0.95);
+    opacity: 1;
+}
+.movie-card .watched-btn.active:hover {
+    background: rgba(214, 61, 69, 0.9);
+}
+
+.visibility-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+.visibility-badge.friends {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.35);
+}
+body.halloween .visibility-badge.friends {
+    background: rgba(255, 107, 0, 0.15);
+    color: #ff8c2b;
+    border-color: rgba(255, 107, 0, 0.4);
+}
+body.newyear .visibility-badge.friends {
+    background: rgba(0, 168, 232, 0.15);
+    color: #00c6ff;
+    border-color: rgba(0, 168, 232, 0.4);
+}
+
+/* Контактная почта на экране входа */
+.auth-help {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(26, 26, 26, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: #c9c9d0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+    z-index: 1001;
+}
+.auth-help:hover {
+    background: rgba(229, 9, 20, 0.15);
+    color: #fff;
+    border-color: rgba(229, 9, 20, 0.5);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+    .auth-help {
+        right: 12px;
+        bottom: 12px;
+        font-size: 0.78rem;
+        padding: 8px 12px;
+    }
+}
+
+.auth-help {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(26, 26, 26, 0.9);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: #c9c9d0;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+    z-index: 1001;
+}
+.auth-help:hover {
+    background: rgba(229, 9, 20, 0.15);
+    color: #fff;
+    border-color: rgba(229, 9, 20, 0.5);
+    transform: translateY(-2px);
+}
+@media (max-width: 480px) {
+    .auth-help {
+        right: 12px;
+        bottom: 12px;
+        font-size: 0.78rem;
+        padding: 8px 12px;
+    }
+}
