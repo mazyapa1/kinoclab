@@ -508,9 +508,7 @@ function showMainApp() {
   app.hidden = false;
   app.style.display = 'block';
   document.getElementById('user-name-display').textContent = currentUserProfile?.username || currentUser.email;
-  const lastSection = localStorage.getItem('lastSection') || 'home';
-  if (document.getElementById(lastSection)) showSection(lastSection);
-  else showSection('home');
+  showSection('movies');
 }
 
 async function logout() {
@@ -822,7 +820,16 @@ async function toggleWatchedFromModal(kinopoiskId, movieName, posterUrl) {
       watchedMovieIds.add(kid);
       showNotification('Отмечено как просмотрено', 'success');
     }
-    closeModal();
+
+    // Обновляем кнопку прямо в модалке, не закрывая её
+    const btn = document.querySelector('.movie-hero-actions .watched-toggle');
+    if (btn) {
+      const nowWatched = watchedMovieIds.has(kid);
+      btn.classList.toggle('active', nowWatched);
+      btn.innerHTML = nowWatched ? '✅ Просмотрено' : '👁 Отметить';
+    }
+
+    // Обновляем списки на фоне, если пользователь потом вернётся
     if (currentSection === 'movies') loadCatalogRows();
     else if (currentSection === 'watched') loadWatchedList();
   } catch (e) { showNotification('Ошибка: ' + (e.message || ''), 'error'); }
