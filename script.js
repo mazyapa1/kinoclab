@@ -41,6 +41,9 @@ let openMenuEl = null;
 let currentGlobalTheme = null;
 let myFriendIdsCache = null;
 let watchedMovieIds = new Set();
+let heroFilms = [];
+let heroIndex = 0;
+
 const kinopoiskMovieCache = new Map();
 const rowState = {};
 
@@ -549,16 +552,18 @@ function showSection(s) {
   if (loaders[s]) loaders[s]();
 }
 
-// ============ ГЛАВНАЯ: HERO ============
+// ============ ГЛАВНАЯ: HERO-КАРУСЕЛЬ ============
 async function loadHeroBanner() {
   const el = document.getElementById('hero-banner');
   if (!el) return;
   try {
     const { data } = await supabaseClient.functions.invoke('get-movies-by-page', { body: { page: 1, category: 'popular' } });
-    const films = (data?.films || []).filter(f => f.posterUrl);
+    const films = (data?.films || []).filter(f => f.posterUrl).slice(0, 15);
     if (!films.length) { el.innerHTML = ''; return; }
-    const film = films[Math.floor(Math.random() * Math.min(10, films.length))];
-    renderHeroBanner(el, film);
+    heroFilms = films;
+    heroIndex = 0;
+    renderHeroBanner(el, heroFilms[0]);
+    renderHeroDots();
   } catch (e) { el.innerHTML = ''; }
 }
 
@@ -595,6 +600,36 @@ function renderHeroBanner(el, film) {
       '</div>' +
     '</div>';
 }
+
+function renderHeroDots() {
+  const dotsEl = document.getElementById('hero-dots');
+  if (!dotsEl) return;
+  if (heroFilms.length <= 1) { dotsEl.innerHTML = ''; dotsEl.style.display = 'none'; return; }
+  dotsEl.style.display = 'flex';
+  dotsEl.innerHTML = heroFilms.map((_, i) =>
+    '<button class="hero-dot' + (i === heroIndex ? ' active' : '') + '" onclick="goToHeroSlide(' + i + ')" aria-label="Слайд ' + (i + 1) + '"></button>'
+  ).join('');
+}
+
+function goToHeroSlide(i) {
+  if (!heroFilms.length) return;
+  heroIndex = (i + heroFilms.length) % heroFilms.length;
+  const el = document.getElementById('hero-banner');
+  if (!el) return;
+  renderHeroBanner(el, heroFilms[heroIndex]);
+  renderHeroDots();
+}
+
+function heroPrev() { goToHeroSlide(heroIndex - 1); }
+function heroNext() { goToHeroSlide(heroIndex + 1); }
+
+// Автопереключение каждые 8 секунд
+setInterval(() => {
+  if (!heroFilms.length) return;
+  if (currentSection !== 'movies') return;
+  if (document.hidden) return;
+  heroNext();
+}, 8000);
 
 // ============ ГЛАВНАЯ: РЯДЫ ============
 const CATALOG_ROWS = [
@@ -1741,11 +1776,28 @@ async function loadFriends() {
     const isOnline = pMap[f.friend_id] || false;
     const unreadFrom = uMap[f.friend_id] || 0;
     const uname = f.friend?.username || 'Друг';
-    return '<div style="padding:12px;background:#1a1a24;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">' +
-      '<div style="flex:1;cursor:pointer;" onclick="viewUserProfile(\'' + f.friend_id + '\')"><span id="status-' + f.friend_id + '">' + (isOnline ? '🟢' : '⚪') + '</span> <span>' + escapeHtml(f.friend?.username || 'Пользователь') + '</span>' +
+    return '<div style="padding:12px;background:#1a1a24;border-radius:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+      '<div style="flex:1;min-width:0;cursor:pointer;" onclick="viewUserProfile(\'' + f.friend_id + '\')"><span id="status-' + f.friend_id + '">' + (isOnline ? '🟢' : '⚪') + '</span> <span>' + escapeHtml(f.friend?.username || 'Пользователь') + '</span>' +
       (unreadFrom > 0 ? '<span style="background:#a855f7;color:white;border-radius:10px;padding:2px 8px;font-size:0.7rem;margin-left:8px;">' + unreadFrom + '</span>' : '') + '</div>' +
-      '<button class="btn btn-primary" style="min-height:32px;padding:6px 14px;font-size:0.8rem;" onclick="event.stopPropagation(); openChat(\'' + f.friend_id + '\', \'' + escapeForOnclick(uname) + '\')">💬</button></div>';
+      '<button class="btn btn-primary" style="min-height:32px;padding:6px 12px;font-size:0.8rem;" onclick="event.stopPropagation(); openChat(\'' + f.friend_id + '\', \'' + escapeForOnclick(uname) + '\')">💬</button>' +
+      '<button class="btn btn-danger" style="min-height:32px;padding:6px 10px;font-size:0.8rem;" onclick="event.stopPropagation(); removeFriend(\'' + f.friend_id + '\', \'' + escapeForOnclick(uname) + '\')" title="Удалить из друзей">🗑</button>' +
+    '</div>';
   }).join('');
+}
+
+async function removeFriend(friendId, friendName) {
+  showConfirmModal('Удалить ' + friendName + ' из друзей?', async () => {
+    try {
+      await supabaseClient.from('friendships')
+        .delete()
+        .or('and(user_id.eq.' + currentUser.id + ',friend_id.eq.' + friendId + '),and(user_id.eq.' + friendId + ',friend_id.eq.' + currentUser.id + ')');
+      myFriendIdsCache = null;
+      showNotification(friendName + ' удалён из друзей', 'info');
+      loadFriends();
+    } catch (e) {
+      showNotification('Ошибка: ' + (e.message || ''), 'error');
+    }
+  });
 }
 
 // ============ ЧАТ ============
