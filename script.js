@@ -112,6 +112,12 @@ async function getKinopoiskMovie(kinopoiskId) {
   } catch (e) { return null; }
 }
 
+function formatAgeLimit(limit) {
+  if (!limit) return '';
+  const map = { age0: '0+', age6: '6+', age12: '12+', age16: '16+', age18: '18+' };
+  return map[limit] || '';
+}
+
 async function getPosterFromAPI(kinopoiskId) {
   const data = await getKinopoiskMovie(kinopoiskId);
   return data?.posterUrl || '';
@@ -818,6 +824,7 @@ async function showMovieDetails(filmId) {
               (!isNaN(kp) && kp > 0 ? '<span class="hero-badge rating">' + STAR_SVG + ' ' + kp.toFixed(1) + '/10</span>' : '') +
               (data.filmLength ? '<span class="hero-badge duration">⏱ ' + data.filmLength + ' мин</span>' : '') +
               (year ? '<span class="hero-badge">' + year + '</span>' : '') +
+              (data.ratingAgeLimits ? '<span class="hero-badge" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#ff9c9c;">' + formatAgeLimit(data.ratingAgeLimits) + '</span>' : '') +
             '</div>' +
             (genresText ? '<div class="movie-hero-genres">' + escapeHtml(genresText) + '</div>' : '') +
             '<p class="movie-hero-desc">' + escapeHtml(description) + '</p>' +
