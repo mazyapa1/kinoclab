@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=65" />
+  <link rel="stylesheet" href="style.css?v=70" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="script.js?v=65" defer></script>
+  <script src="script.js?v=70" defer></script>
 </head>
 <body>
 
@@ -127,8 +127,6 @@
           <li><a href="#" onclick="showSection('rated'); return false;">Оценённые</a></li>
           <li><a href="#" onclick="showSection('home'); return false;">Недавние</a></li>
           <li><a href="#" onclick="showSection('watchlist'); return false;">Хочу посмотреть</a></li>
-          <li><a href="#" onclick="showSection('watched'); return false;">Просмотренные</a></li>
-          <li><a href="#" onclick="showSection('wheel'); return false;">Колесо</a></li>
           <li><a href="#" onclick="showSection('chat'); return false;">Чат <span id="unread-badge" class="nav-badge" style="display:none;">0</span></a></li>
         </ul>
         <div class="nav-user">
@@ -153,6 +151,13 @@
                 <svg width="16" height="16"><use href="#i-users"/></svg> Друзья
               </a>
               <div class="profile-menu-sep"></div>
+              <a href="#" onclick="showSection('wheel'); toggleProfileMenu(event); return false;">
+                <svg width="16" height="16"><use href="#i-disc"/></svg> Колесо
+              </a>
+              <a href="#" onclick="showSection('watched'); toggleProfileMenu(event); return false;">
+                <svg width="16" height="16"><use href="#i-eye"/></svg> Просмотренные
+              </a>
+              <div class="profile-menu-sep"></div>
               <a href="#" onclick="logout(); return false;" class="danger">
                 <svg width="16" height="16"><use href="#i-logout"/></svg> Выйти
               </a>
@@ -163,6 +168,7 @@
     </nav>
 
     <main>
+      <!-- ГЛАВНАЯ -->
       <section id="movies" class="section active">
         <div class="hero-wrap">
           <div id="hero-banner" class="hero-banner">
@@ -218,17 +224,6 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Сериалы</h3>
-              <div class="row-arrows">
-                <button type="button" onclick="scrollRow('row-series', -1)">‹</button>
-                <button type="button" onclick="scrollRow('row-series', 1)">›</button>
-              </div>
-            </div>
-            <div class="catalog-row" id="row-series"></div>
-          </div>
-
-          <div class="catalog-row-wrap">
-            <div class="catalog-row-header">
               <h3>Ожидаемые</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-await', -1)">‹</button>
@@ -240,6 +235,17 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
+              <h3>Сериалы</h3>
+              <div class="row-arrows">
+                <button type="button" onclick="scrollRow('row-series', -1)">‹</button>
+                <button type="button" onclick="scrollRow('row-series', 1)">›</button>
+              </div>
+            </div>
+            <div class="catalog-row" id="row-series"></div>
+          </div>
+
+          <div class="catalog-row-wrap">
+            <div class="catalog-row-header">
               <h3>Мультики</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-cartoons', -1)">‹</button>
@@ -247,12 +253,16 @@
               </div>
             </div>
             <div class="catalog-row" id="row-cartoons"></div>
-          </div>          
+          </div>
         </div>
       </section>
 
-      
+      <!-- СТРАНИЦА ФИЛЬМА -->
+      <section id="film-page" class="section">
+        <div id="film-page-content"></div>
+      </section>
 
+      <!-- НЕДАВНИЕ -->
       <section id="home" class="section">
         <div class="halloween-banner">
           <div class="halloween-banner-content">
@@ -311,16 +321,19 @@
         </div>
       </section>
 
+      <!-- ХОЧУ ПОСМОТРЕТЬ -->
       <section id="watchlist" class="section">
         <div class="page-heading"><div><p class="eyebrow">Закладки</p><h2>Хочу посмотреть <span id="watchlist-count" class="count"></span></h2></div></div>
         <div id="watchlist-grid" class="movies-grid"></div>
       </section>
 
+      <!-- ПРОСМОТРЕННЫЕ -->
       <section id="watched" class="section">
         <div class="page-heading"><div><p class="eyebrow">Личная история</p><h2>Просмотренные <span id="watched-count" class="count"></span></h2></div></div>
         <div id="watched-grid" class="movies-grid"></div>
       </section>
 
+      <!-- ОЦЕНЁННЫЕ -->
       <section id="rated" class="section">
         <div class="page-heading">
           <div><p class="eyebrow">Мнения участников</p><h2>Оценённые фильмы <span id="rated-count" class="count"></span></h2></div>
@@ -341,6 +354,7 @@
         <div id="rated-movies-list" class="movies-grid"></div>
       </section>
 
+      <!-- КОЛЕСО -->
       <section id="wheel" class="section">
         <div class="page-heading">
           <div><p class="eyebrow">Выбор на вечер</p><h2>Колесо фильмов</h2></div>
@@ -375,6 +389,7 @@
         </div>
       </section>
 
+      <!-- ДРУЗЬЯ -->
       <section id="friends" class="section">
         <div class="page-heading"><div><p class="eyebrow">Ваше окружение</p><h2>Друзья</h2></div></div>
         <div class="friends-layout">
@@ -394,11 +409,13 @@
         </div>
       </section>
 
+      <!-- ПРОФИЛЬ -->
       <section id="profile" class="section">
         <div class="page-heading"><div><p class="eyebrow">Настройки аккаунта</p><h2>Профиль</h2></div></div>
         <div id="profile-info"></div>
       </section>
 
+      <!-- ЧАТ -->
       <section id="chat" class="section">
         <div class="page-heading"><div><p class="eyebrow">Личные сообщения</p><h2>Чат <span id="chat-count" class="count"></span></h2></div></div>
         <div class="tg-chat" id="tg-chat">
@@ -439,12 +456,12 @@
       </section>
     </main>
 
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav" id="bottom-nav">
       <a href="#" onclick="showSection('movies'); return false;" data-nav="movies"><svg width="22" height="22"><use href="#i-film"/></svg><small>Главная</small></a>
       <a href="#" onclick="showSection('rated'); return false;" data-nav="rated"><svg width="22" height="22"><use href="#i-star"/></svg><small>Оценки</small></a>
       <a href="#" onclick="showSection('home'); return false;" data-nav="home"><svg width="22" height="22"><use href="#i-home"/></svg><small>Недавние</small></a>
       <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><svg width="22" height="22"><use href="#i-bookmark"/></svg><small>Хочу</small></a>
-      <a href="#" onclick="showSection('watched'); return false;" data-nav="watched"><svg width="22" height="22"><use href="#i-eye"/></svg><small>Смотрел</small></a>
       <a href="#" onclick="showSection('chat'); return false;" data-nav="chat">
         <svg width="22" height="22"><use href="#i-message"/></svg><small>Чат</small>
         <span id="unread-badge-mobile" class="nav-badge" style="display:none;">0</span>
@@ -452,6 +469,7 @@
     </div>
   </div>
 
+  <!-- МОДАЛКИ -->
   <div id="movie-modal" class="modal" onclick="if(event.target===this) closeModal()">
     <div class="modal-content">
       <button class="close" type="button" onclick="closeModal()"><svg width="20" height="20"><use href="#i-close"/></svg></button>
