@@ -979,12 +979,14 @@ async function showFilmPage(filmId) {
           '<div id="film-cast-list" class="cast-grid"></div>' +
         '</section>' +
 
+        '<div id="sequels-block" class="movie-modal-sequels"></div>' +
         '<div class="film-page-reviews" id="film-reviews-block"></div>' +
       '</div>' +
     '</div>';
 
   loadFilmTrailersSidebar(filmId, t, year);
   loadFilmCastSidebar(filmId);
+  loadSequelsAndPrequels(filmId);
   loadFilmReviewsSidebar(filmId);
 }
 

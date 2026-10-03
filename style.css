@@ -2026,6 +2026,31 @@ textarea { min-height: 120px; resize: vertical; line-height: 1.55; }
 .btn-recommend-yes.active { color: #fff; background: var(--green); border-color: var(--green); }
 .btn-recommend-no.active { color: #fff; background: var(--danger); border-color: var(--danger); }
 
+/* Звёзды на мобилке — компактнее */
+@media (max-width: 500px) {
+  .star-rating { justify-content: space-between; gap: 0; }
+  .star-rating .star {
+    width: 28px;
+    height: 30px;
+    min-width: 28px;
+  }
+  .star-rating .star svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 380px) {
+  .star-rating .star {
+    width: 24px;
+    height: 28px;
+    min-width: 24px;
+  }
+  .star-rating .star svg {
+    width: 16px;
+    height: 16px;
+  }
+}
 /* ============================================================
    ЧАТ
    ============================================================ */
