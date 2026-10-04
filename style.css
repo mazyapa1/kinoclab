@@ -86,7 +86,7 @@ h1, h2, h3, h4, p { margin: 0; overflow-wrap: anywhere; }
 .auth-hero-popcorn {
   position: absolute;
   top: 45%;
-  right: 10%;
+  right: 25%;
   transform: translateY(-50%) rotate(-8deg);
   width: 65%;
   max-width: 520px;
@@ -760,7 +760,7 @@ body.light .row-arrows button:hover { color: var(--text); }
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  scroll-behavior: smooth;   СТРАНИЦА ФИЛЬМА
+  scroll-behavior: smooth;
 
   padding-bottom: 8px;
   scrollbar-width: none;
