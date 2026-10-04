@@ -135,6 +135,9 @@ h1, h2, h3, h4, p { margin: 0; overflow-wrap: anywhere; }
   padding: 40px;
   background: var(--bg);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-form-box { width: min(100%, 400px); }
@@ -246,6 +249,8 @@ h1, h2, h3, h4, p { margin: 0; overflow-wrap: anywhere; }
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s, transform 0.1s;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
