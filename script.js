@@ -108,16 +108,46 @@ function getPosterHtml(poster, title, w, h, fs) {
 async function getKinopoiskMovie(kinopoiskId) {
   if (!kinopoiskId) return null;
   if (kinopoiskMovieCache.has(kinopoiskId)) return kinopoiskMovieCache.get(kinopoiskId);
+
+  // Проверяем localStorage (кэш на 24 часа)
+  try {
+    const cached = localStorage.getItem('kp_' + kinopoiskId);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed._expires > Date.now()) {
+        kinopoiskMovieCache.set(kinopoiskId, parsed.data);
+        return parsed.data;
+      } else {
+        localStorage.removeItem('kp_' + kinopoiskId);
+      }
+    }
+  } catch (e) {}
+
   try {
     const { data } = await supabaseClient.functions.invoke('get-kinopoisk-movie', { body: { filmId: kinopoiskId } });
     kinopoiskMovieCache.set(kinopoiskId, data || null);
+    if (data) {
+      try {
+        localStorage.setItem('kp_' + kinopoiskId, JSON.stringify({
+          data,
+          _expires: Date.now() + 24 * 60 * 60 * 1000
+        }));
+      } catch (e) {
+        // localStorage переполнен — чистим старые записи
+        try {
+          Object.keys(localStorage).forEach(k => {
+            if (k.startsWith('kp_')) localStorage.removeItem(k);
+          });
+        } catch (e2) {}
+      }
+    }
     return data || null;
   } catch (e) { return null; }
 }
 
 async function getPosterFromAPI(kinopoiskId) {
   const data = await getKinopoiskMovie(kinopoiskId);
-  return data?.posterUrl || '';
+  return data?.posterUrlPreview || data?.posterUrl || '';
 }
 
 function isAdmin() { return currentUserProfile?.role === 'admin'; }
@@ -742,9 +772,12 @@ const CATALOG_ROWS = [
 ];
 
 async function loadCatalogRows() {
-  for (const row of CATALOG_ROWS) {
+  for (let i = 0; i < CATALOG_ROWS.length; i++) {
+    const row = CATALOG_ROWS[i];
     rowState[row.id] = { page: 1, loading: false, hasMore: true };
-    loadCatalogRow(row.id, row.type, false);
+    setTimeout(() => {
+      loadCatalogRow(row.id, row.type, false);
+    }, i * 150);
   }
 }
 
@@ -820,7 +853,7 @@ function buildMovieCardHTML(f) {
   const t = f.nameRu || f.nameEn || f.name || '';
   if (!t) return '';
   const id = f.filmId || f.id;
-  const poster = f.posterUrl || f.cover_url || '';
+  const poster = f.posterUrlPreview || f.posterUrl || f.cover_url || '';
   const year = f.year || '';
   const genres = (f.genres || []).map(g => g.genre || g);
   const ratingNum = parseFloat(f.rating || f.ratingKinopoisk);
