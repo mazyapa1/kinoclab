@@ -887,6 +887,7 @@ function openFilmPage(filmId) {
 
 function closeFilmPage() {
   window.location.hash = '';
+  document.title = 'Киноклуб — оценки фильмов, рецензии и подборки | kinoclab.online';
 }
 
 function handleHashRoute() {
@@ -929,12 +930,39 @@ async function showFilmPage(filmId) {
   const isWatched = watchedMovieIds.has(kid);
   const ageLimit = formatAgeLimit(data.ratingAgeLimits);
 
+  // Динамические meta-теги для SEO и соцсетей
+  document.title = t + (year ? ' (' + year + ')' : '') + ' — рецензии, оценки, смотреть | Киноклуб';
+
+  let metaDesc = document.querySelector('meta[name="description"]');
+  if (!metaDesc) {
+    metaDesc = document.createElement('meta');
+    metaDesc.name = 'description';
+    document.head.appendChild(metaDesc);
+  }
+  metaDesc.content = (t + ' — ' + (description || '').slice(0, 150)).trim();
+
+  let ogTitle = document.querySelector('meta[property="og:title"]');
+  if (!ogTitle) { ogTitle = document.createElement('meta'); ogTitle.setAttribute('property', 'og:title'); document.head.appendChild(ogTitle); }
+  ogTitle.content = t + (year ? ' (' + year + ')' : '');
+
+  let ogDesc = document.querySelector('meta[property="og:description"]');
+  if (!ogDesc) { ogDesc = document.createElement('meta'); ogDesc.setAttribute('property', 'og:description'); document.head.appendChild(ogDesc); }
+  ogDesc.content = (description || '').slice(0, 150);
+
+  let ogImage = document.querySelector('meta[property="og:image"]');
+  if (!ogImage) { ogImage = document.createElement('meta'); ogImage.setAttribute('property', 'og:image'); document.head.appendChild(ogImage); }
+  ogImage.content = poster;
+
+  let ogUrl = document.querySelector('meta[property="og:url"]');
+  if (!ogUrl) { ogUrl = document.createElement('meta'); ogUrl.setAttribute('property', 'og:url'); document.head.appendChild(ogUrl); }
+  ogUrl.content = 'https://kinoclab.online/#film/' + filmId;
+
   // Проверяем, есть ли фильм в watchlist
+  let isInWatchlist = false;
   try {
     const { data: mv } = await supabaseClient.from('movies').select('id').eq('kinopoisk_id', kid).maybeSingle();
     if (mv) {
-      dbMovieId = mv.id;
-      const { data: wl } = await supabaseClient.from('watchlist').select('id').eq('user_id', currentUser.id).eq('movie_id', dbMovieId).maybeSingle();
+      const { data: wl } = await supabaseClient.from('watchlist').select('id').eq('user_id', currentUser.id).eq('movie_id', mv.id).maybeSingle();
       if (wl) isInWatchlist = true;
     }
   } catch (e) {}
@@ -945,7 +973,7 @@ async function showFilmPage(filmId) {
     '<div class="film-page-layout">' +
       '<aside class="film-page-sidebar">' +
         '<div class="film-page-poster">' +
-          (poster ? '<img src="' + escapeHtml(poster) + '" alt="' + escapeHtml(t) + '">' : '<div class="no-poster">🎬</div>') +
+          (poster ? '<img src="' + escapeHtml(poster) + '" alt="Постер фильма ' + escapeHtml(t) + '">' : '<div class="no-poster">🎬</div>') +
         '</div>' +
         '<div class="film-page-actions-vertical">' +
           '<a href="https://kinopub.my/?do=search&subaction=search&story=' + encodeURIComponent(t) + '" target="_blank" rel="noopener" class="btn btn-primary btn-full">▶ Смотреть</a>' +
