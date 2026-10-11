@@ -2767,3 +2767,32 @@ body.light .movie-review-text { color: #3a3a4a; }
 body.light .film-trailer-icons { background: var(--surface); border-color: var(--border); }
 body.light .film-trailer-icon-btn { background: var(--surface-2); border-color: var(--border); }
 body.light .film-trailer-icon-btn:hover { background: var(--surface-hover); border-color: var(--border-hover); }
+
+/* Кнопка языка на экране авторизации */
+.auth-lang-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 10;
+  padding: 8px 14px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.18s;
+}
+
+.auth-lang-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-hover);
+}
+
+@media (max-width: 900px) {
+  .auth-lang-btn { top: 14px; right: 14px; padding: 7px 12px; font-size: 0.8rem; }
+}

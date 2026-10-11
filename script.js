@@ -733,7 +733,12 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   errEl.hidden = true;
   const loginInput = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
-  if (!loginInput || !password) { errEl.textContent = 'Заполните оба поля'; errEl.hidden = false; return; }
+  const en = (typeof currentLang !== 'undefined') && currentLang === 'en';
+  if (!loginInput || !password) {
+    errEl.textContent = en ? 'Fill in both fields' : 'Заполните оба поля';
+    errEl.hidden = false;
+    return;
+  }
 
   const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginInput);
   let email = loginInput;
@@ -770,7 +775,13 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   const email = document.getElementById('register-email').value.trim();
   const password = document.getElementById('register-password').value;
   const password2 = document.getElementById('register-password2').value;
-  if (username.length < 3) return showAuthError(errEl, 'Ник минимум 3 символа');
+    const en = (typeof currentLang !== 'undefined') && currentLang === 'en';
+  if (!username) return showAuthError(errEl, en ? 'Enter a nickname' : 'Введите ник');
+  if (username.length < 3) return showAuthError(errEl, en ? 'Nickname must be at least 3 characters' : 'Ник минимум 3 символа');
+  if (!email) return showAuthError(errEl, en ? 'Enter email' : 'Введите email');
+  if (!password) return showAuthError(errEl, en ? 'Enter password' : 'Введите пароль');
+  if (password.length < 6) return showAuthError(errEl, en ? 'Password must be at least 6 characters' : 'Пароль минимум 6 символов');
+  if (password !== password2) return showAuthError(errEl, en ? 'Passwords do not match' : 'Пароли не совпадают');
   if (!/^[\w\-. ]+$/.test(username)) return showAuthError(errEl, 'Ник может содержать только буквы, цифры, пробел, ".", "-", "_"');
   if (password.length < 6) return showAuthError(errEl, 'Пароль минимум 6 символов');
   if (password !== password2) return showAuthError(errEl, 'Пароли не совпадают');

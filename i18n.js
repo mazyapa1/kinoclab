@@ -31,6 +31,7 @@ const I18N = {
     page_rated_title: 'Оценённые фильмы',
     page_wheel_eyebrow: 'Выбор на вечер',
     page_wheel_title: 'Колесо фильмов',
+    page_wheel_history: 'История выпадений',
     page_friends_eyebrow: 'Ваше окружение',
     page_friends_title: 'Друзья',
     page_profile_eyebrow: 'Настройки аккаунта',
@@ -63,7 +64,12 @@ const I18N = {
     btn_wanted: '★ В списке',
     btn_back: 'Назад',
     btn_spin: 'Крутить',
+    btn_spinning: 'Крутится...',
     btn_new_movies: 'Новые фильмы',
+    btn_save: 'Сохранить',
+    btn_cancel: 'Отмена',
+    btn_delete: 'Удалить',
+    btn_close: 'Закрыть',
 
     // Секции страницы фильма
     section_trailers: 'Трейлеры',
@@ -101,6 +107,13 @@ const I18N = {
     auth_register_btn: 'Создать аккаунт',
     auth_hero_text: 'Оценивайте фильмы, делитесь мнением и следите за тем, что смотрят друзья.',
     auth_hero_title: 'Кино, которое объединяет',
+    auth_ph_nick: 'Ваш ник',
+    auth_ph_email: 'example@mail.ru',
+    auth_ph_password: 'Минимум 6 символов',
+    auth_ph_password2: 'Повторите пароль',
+    auth_link_policy: 'Политика конфиденциальности',
+    auth_link_support: 'Связаться с поддержкой',
+    brand_name: 'Киноклуб',
 
     // Заголовки модалок
     modal_rate_title: 'Оценить фильм',
@@ -149,6 +162,7 @@ const I18N = {
     page_rated_title: 'Rated movies',
     page_wheel_eyebrow: 'Pick for tonight',
     page_wheel_title: 'Movie wheel',
+    page_wheel_history: 'Spin history',
     page_friends_eyebrow: 'Your circle',
     page_friends_title: 'Friends',
     page_profile_eyebrow: 'Account settings',
@@ -181,7 +195,12 @@ const I18N = {
     btn_wanted: '★ In list',
     btn_back: 'Back',
     btn_spin: 'Spin',
+    btn_spinning: 'Spinning...',
     btn_new_movies: 'New movies',
+    btn_save: 'Save',
+    btn_cancel: 'Cancel',
+    btn_delete: 'Delete',
+    btn_close: 'Close',
 
     // Film page sections
     section_trailers: 'Trailers',
@@ -219,6 +238,13 @@ const I18N = {
     auth_register_btn: 'Create account',
     auth_hero_text: 'Rate movies, share your opinion and follow what your friends watch.',
     auth_hero_title: 'Cinema that unites',
+    auth_ph_nick: 'Your nickname',
+    auth_ph_email: 'example@mail.ru',
+    auth_ph_password: 'At least 6 characters',
+    auth_ph_password2: 'Repeat password',
+    auth_link_policy: 'Privacy Policy',
+    auth_link_support: 'Contact support',
+    brand_name: 'KinoClub',
 
     // Modal titles
     modal_rate_title: 'Rate movie',
@@ -255,36 +281,38 @@ function setLang(lang) {
 function toggleLang() {
   setLang(currentLang === 'ru' ? 'en' : 'ru');
 
+  // Если пользователь ещё не залогинен — просто переводим статику и выходим
+  if (typeof currentUser === 'undefined' || !currentUser) {
+    return;
+  }
+
   // Страница фильма
-  if (window.currentSection === 'film-page' && window.currentFilmId) {
-    if (typeof showFilmPage === 'function') showFilmPage(window.currentFilmId);
+  if (typeof currentSection !== 'undefined' && currentSection === 'film-page' && window.currentFilmId && typeof showFilmPage === 'function') {
+    showFilmPage(window.currentFilmId);
   }
   // Лента
-  if (window.currentSection === 'home' && typeof loadRecentReviews === 'function') {
-    window.recentReviewsCache = null;
-    window.loadRecentReviews(true);
+  if (typeof currentSection !== 'undefined' && currentSection === 'home' && typeof loadRecentReviews === 'function') {
+    if (typeof recentReviewsCache !== 'undefined') recentReviewsCache = null;
+    loadRecentReviews(true);
   }
   // Каталог + hero
-  if (window.currentSection === 'movies') {
+  if (typeof currentSection !== 'undefined' && currentSection === 'movies') {
     if (typeof loadHeroBanner === 'function') loadHeroBanner();
     if (typeof loadCatalogRows === 'function') {
-      // сбрасываем пагинацию
-      if (window.rowState) {
-        Object.keys(window.rowState).forEach(k => delete window.rowState[k]);
+      if (typeof rowState !== 'undefined') {
+        Object.keys(rowState).forEach(k => delete rowState[k]);
       }
       loadCatalogRows();
     }
   }
   // Колесо
-  if (window.currentSection === 'wheel') {
-    if (typeof loadWheelMovies === 'function') {
-      window.wheelMovies = [];
-      loadWheelMovies();
-    }
+  if (typeof currentSection !== 'undefined' && currentSection === 'wheel' && typeof loadWheelMovies === 'function') {
+    if (typeof wheelMovies !== 'undefined') wheelMovies = [];
+    loadWheelMovies();
   }
-  // Оценённые (постеры)
-  if (window.currentSection === 'rated' && typeof loadRatedMovies === 'function') {
-    window.ratedMoviesData = [];
+  // Оценённые
+  if (typeof currentSection !== 'undefined' && currentSection === 'rated' && typeof loadRatedMovies === 'function') {
+    if (typeof ratedMoviesData !== 'undefined') ratedMoviesData = [];
     loadRatedMovies();
   }
 }
@@ -305,9 +333,10 @@ function applyLanguage() {
     const key = el.getAttribute('data-i18n-title');
     el.title = t(key);
   });
-  // Переключатель
-  const toggle = document.getElementById('lang-toggle');
-  if (toggle) toggle.textContent = currentLang === 'ru' ? 'EN' : 'RU';
+  // Переключатели языка (все, у кого id начинается с lang-toggle)
+  document.querySelectorAll('[id^="lang-toggle"]').forEach(el => {
+    el.textContent = currentLang === 'ru' ? 'EN' : 'RU';
+  });
   // Язык страницы
   document.documentElement.setAttribute('lang', currentLang);
   // Заголовок вкладки
