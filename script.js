@@ -1293,6 +1293,10 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   const email = document.getElementById('register-email').value.trim();
   const password = document.getElementById('register-password').value;
   const password2 = document.getElementById('register-password2').value;
+  const consent = document.getElementById('register-consent');
+  if (!consent || !consent.checked) {
+    return showAuthError(errEl, L('Необходимо согласие на обработку персональных данных', 'Consent to personal data processing is required'));
+  }
   if (!username) return showAuthError(errEl, L('Введите ник', 'Enter a nickname'));
   if (username.length < 3) return showAuthError(errEl, L('Ник минимум 3 символа', 'Nickname must be at least 3 characters'));
   if (!/^[\w\-. ]+$/.test(username)) return showAuthError(errEl, L('Ник может содержать только буквы, цифры, пробел, ".", "-", "_"', 'Nickname can only contain letters, digits, space, ".", "-", "_"'));

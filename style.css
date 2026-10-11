@@ -2796,3 +2796,33 @@ body.light .film-trailer-icon-btn:hover { background: var(--surface-hover); bord
 @media (max-width: 900px) {
   .auth-lang-btn { top: 14px; right: 14px; padding: 7px 12px; font-size: 0.8rem; }
 }
+
+.auth-consent-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.auth-consent-label input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.auth-consent-label a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.auth-consent-label a:hover {
+  text-decoration: underline;
+}

@@ -216,6 +216,9 @@ const I18N = {
     tost_theme_default: 'Обычная',
     tost_theme_halloween: 'Хэллоуин',
     tost_theme_newyear: 'Новогодняя',
+    auth_consent_label: 'Я согласен на обработку персональных данных и принимаю',
+    auth_consent_policy: 'Политику конфиденциальности',
+    auth_consent_required: 'Необходимо согласие на обработку персональных данных',
   },
 
   en: {
@@ -332,6 +335,9 @@ const I18N = {
     auth_link_policy: 'Privacy Policy',
     auth_link_support: 'Contact support',
     brand_name: 'KinoClub',
+    auth_consent_label: 'I agree to the processing of personal data and accept the',
+    auth_consent_policy: 'Privacy Policy',
+    auth_consent_required: 'Consent to personal data processing is required',
 
     // Modal titles
     modal_rate_title: 'Rate movie',
