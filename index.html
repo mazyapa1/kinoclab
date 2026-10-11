@@ -4,14 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0a0a0f" />
- <title>Киноклуб — оценки фильмов, рецензии и подборки | kinoclab.online</title>
+  <title>Киноклуб — оценки фильмов, рецензии и подборки | kinoclab.online</title>
   <meta name="description" content="Киноклуб — социальная сеть для любителей кино. Оценивайте фильмы, читайте рецензии, ведите список просмотренного и делитесь мнением с друзьями." />
   <meta name="keywords" content="киноклуб, оценки фильмов, рецензии на фильмы, что посмотреть, список фильмов, кино онлайн" />
-  <meta property="og:title" content="Киноклуб — оценки фильмов и рецензии" />
+  <meta property="og:title" content="Киноклуб" />
   <meta property="og:description" content="Социальная сеть для любителей кино. Оценивайте, обсуждайте, ведите список." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://kinoclab.online/" />
   <meta property="og:image" content="https://kinoclab.online/og-image.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Киноклуб",
+    "url": "https://kinoclab.online/",
+    "description": "Социальная сеть для любителей кино. Оценивайте фильмы, читайте рецензии, ведите список просмотренного."
+  }
+  </script>
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,9 +28,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=82" />
+  <link rel="stylesheet" href="style.css?v=92" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="script.js?v=82" defer></script>
+  <script src="i18n.js?v=1"></script>
+  <script src="script.js?v=92" defer></script>
 </head>
 <body>
 
@@ -49,9 +59,9 @@
     <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></symbol>
   </svg>
 
-  <!-- АВТОРИЗАЦИЯ -->
   <div id="auth-screen" class="auth-screen">
     <div class="auth-split">
       <aside class="auth-hero">
@@ -61,53 +71,53 @@
           <span>Киноклуб</span>
         </div>
         <div class="auth-hero-text">
-          <h3>Кино, которое<br>объединяет</h3>
-          <p>Оценивайте фильмы, делитесь мнением и следите за тем, что смотрят друзья.</p>
+          <h3 data-i18n="auth_hero_title">Кино, которое<br>объединяет</h3>
+          <p data-i18n="auth_hero_text">Оценивайте фильмы, делитесь мнением и следите за тем, что смотрят друзья.</p>
         </div>
       </aside>
 
       <section class="auth-form-side">
         <div class="auth-form-box">
           <div class="auth-tabs">
-            <button type="button" class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Вход</button>
-            <button type="button" class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Регистрация</button>
+            <button type="button" class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')" data-i18n="auth_login">Вход</button>
+            <button type="button" class="auth-tab" data-tab="register" onclick="switchAuthTab('register')" data-i18n="auth_register">Регистрация</button>
           </div>
 
           <form id="login-form" class="auth-form">
-            <h2>Вход в аккаунт</h2>
-            <p class="auth-description">Рады видеть вас снова</p>
+            <h2 data-i18n="auth_login_title">Вход в аккаунт</h2>
+            <p class="auth-description" data-i18n="auth_login_desc">Рады видеть вас снова</p>
             <div class="field">
-              <label for="login-email">Email или ник</label>
+              <label for="login-email" data-i18n="auth_email">Email или ник</label>
               <input id="login-email" type="text" autocomplete="username" placeholder="example@mail.ru" required />
             </div>
             <div class="field">
-              <label for="login-password">Пароль</label>
+              <label for="login-password" data-i18n="auth_password">Пароль</label>
               <input id="login-password" type="password" autocomplete="current-password" placeholder="••••••••" required />
             </div>
-            <button class="btn btn-primary btn-full" type="submit">Войти</button>
+            <button class="btn btn-primary btn-full" type="submit" data-i18n="auth_login_btn">Войти</button>
             <div id="auth-error" class="auth-error" hidden></div>
           </form>
 
           <form id="register-form" class="auth-form" style="display:none;">
-            <h2>Создать аккаунт</h2>
-            <p class="auth-description">Это займёт меньше минуты</p>
+            <h2 data-i18n="auth_register_title">Создать аккаунт</h2>
+            <p class="auth-description" data-i18n="auth_register_desc">Это займёт меньше минуты</p>
             <div class="field">
-              <label for="register-username">Ник</label>
+              <label for="register-username" data-i18n="auth_nick">Ник</label>
               <input id="register-username" type="text" autocomplete="nickname" placeholder="Ваш ник" required minlength="3" maxlength="30" />
             </div>
             <div class="field">
-              <label for="register-email">Email</label>
+              <label for="register-email" data-i18n="auth_email_label">Email</label>
               <input id="register-email" type="email" autocomplete="email" placeholder="example@mail.ru" required />
             </div>
             <div class="field">
-              <label for="register-password">Пароль</label>
+              <label for="register-password" data-i18n="auth_password">Пароль</label>
               <input id="register-password" type="password" autocomplete="new-password" placeholder="Минимум 6 символов" required minlength="6" />
             </div>
             <div class="field">
-              <label for="register-password2">Повторите пароль</label>
+              <label for="register-password2" data-i18n="auth_password2">Повторите пароль</label>
               <input id="register-password2" type="password" autocomplete="new-password" placeholder="Повторите пароль" required minlength="6" />
             </div>
-            <button class="btn btn-primary btn-full" type="submit">Создать аккаунт</button>
+            <button class="btn btn-primary btn-full" type="submit" data-i18n="auth_register_btn">Создать аккаунт</button>
             <div id="register-error" class="auth-error" hidden></div>
           </form>
 
@@ -121,7 +131,6 @@
     </div>
   </div>
 
-  <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
   <div id="main-app" hidden>
     <nav>
       <div class="nav-container">
@@ -130,13 +139,14 @@
           <span>Киноклуб</span>
         </a>
         <ul class="nav-links">
-          <li><a href="#" onclick="showSection('movies'); return false;">Главная</a></li>
-          <li><a href="#" onclick="showSection('rated'); return false;">Оценённые</a></li>
-          <li><a href="#" onclick="showSection('home'); return false;">Недавние</a></li>
-          <li><a href="#" onclick="showSection('watchlist'); return false;">Хочу посмотреть</a></li>
-          <li><a href="#" onclick="showSection('chat'); return false;">Чат <span id="unread-badge" class="nav-badge" style="display:none;">0</span></a></li>
+          <li><a href="#" onclick="showSection('movies'); return false;" data-i18n="nav_home">Главная</a></li>
+          <li><a href="#" onclick="showSection('rated'); return false;" data-i18n="nav_rated">Оценённые</a></li>
+          <li><a href="#" onclick="showSection('home'); return false;" data-i18n="nav_recent">Недавние</a></li>
+          <li><a href="#" onclick="showSection('watchlist'); return false;" data-i18n="nav_watchlist">Хочу посмотреть</a></li>
+          <li><a href="#" onclick="showSection('chat'); return false;" data-i18n="nav_chat">Чат</a></li>
         </ul>
         <div class="nav-user">
+          <button class="icon-button" type="button" onclick="toggleLang()" title="RU / EN" id="lang-toggle" style="font-weight:800;font-size:0.85rem;">EN</button>
           <button class="icon-button theme-toggle-btn" type="button" onclick="toggleLightTheme()" aria-label="Переключить тему">
             <svg class="icon-sun" width="20" height="20"><use href="#i-sun"/></svg>
             <svg class="icon-moon" width="20" height="20"><use href="#i-moon"/></svg>
@@ -151,22 +161,25 @@
               <span id="user-name-display"></span>
             </button>
             <div id="profile-menu" class="profile-menu">
+              <a href="#" onclick="showSection('admin'); loadAdminPanel(); toggleProfileMenu(event); return false;" id="admin-menu-item" style="display:none;">
+                <svg width="16" height="16"><use href="#i-lock"/></svg> <span data-i18n="profile_admin">Админ-панель</span>
+              </a>
               <a href="#" onclick="showSection('profile'); loadProfile(); toggleProfileMenu(event); return false;">
-                <svg width="16" height="16"><use href="#i-user"/></svg> Мой профиль
+                <svg width="16" height="16"><use href="#i-user"/></svg> <span data-i18n="profile_my">Мой профиль</span>
               </a>
               <a href="#" onclick="showSection('friends'); toggleProfileMenu(event); return false;">
-                <svg width="16" height="16"><use href="#i-users"/></svg> Друзья
+                <svg width="16" height="16"><use href="#i-users"/></svg> <span data-i18n="profile_friends">Друзья</span>
               </a>
               <div class="profile-menu-sep"></div>
               <a href="#" onclick="showSection('wheel'); toggleProfileMenu(event); return false;">
-                <svg width="16" height="16"><use href="#i-disc"/></svg> Колесо
+                <svg width="16" height="16"><use href="#i-disc"/></svg> <span data-i18n="profile_wheel">Колесо</span>
               </a>
               <a href="#" onclick="showSection('watched'); toggleProfileMenu(event); return false;">
-                <svg width="16" height="16"><use href="#i-eye"/></svg> Просмотренные
+                <svg width="16" height="16"><use href="#i-eye"/></svg> <span data-i18n="profile_watched">Просмотренные</span>
               </a>
               <div class="profile-menu-sep"></div>
               <a href="#" onclick="logout(); return false;" class="danger">
-                <svg width="16" height="16"><use href="#i-logout"/></svg> Выйти
+                <svg width="16" height="16"><use href="#i-logout"/></svg> <span data-i18n="profile_logout">Выйти</span>
               </a>
             </div>
           </div>
@@ -175,8 +188,8 @@
     </nav>
 
     <main>
-      <!-- ГЛАВНАЯ -->
       <section id="movies" class="section active">
+        <h1 class="seo-hidden-h1">Киноклуб — оценки фильмов, рецензии и подборки</h1>
         <div class="hero-wrap">
           <div id="hero-banner" class="hero-banner">
             <div class="hero-skeleton">
@@ -201,7 +214,7 @@
         <div class="main-search-wrap">
           <div class="search-box">
             <svg class="search-icon" width="18" height="18"><use href="#i-search"/></svg>
-            <input id="main-search" type="search" placeholder="Поиск фильмов..." autocomplete="off" oninput="onMainSearch(this.value)" />
+            <input id="main-search" type="search" data-i18n-placeholder="search_movies" placeholder="Поиск фильмов..." autocomplete="off" oninput="onMainSearch(this.value)" />
           </div>
           <div id="main-search-results" class="suggestions"></div>
         </div>
@@ -209,7 +222,7 @@
         <div class="catalog">
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Популярное</h3>
+              <h3 data-i18n="catalog_popular">Популярное</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-popular', -1)">‹</button>
                 <button type="button" onclick="scrollRow('row-popular', 1)">›</button>
@@ -220,7 +233,7 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Топ-250</h3>
+              <h3 data-i18n="catalog_top250">Топ-250</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-top250', -1)">‹</button>
                 <button type="button" onclick="scrollRow('row-top250', 1)">›</button>
@@ -231,7 +244,7 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Ожидаемые</h3>
+              <h3 data-i18n="catalog_await">Ожидаемые</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-await', -1)">‹</button>
                 <button type="button" onclick="scrollRow('row-await', 1)">›</button>
@@ -242,7 +255,7 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Сериалы</h3>
+              <h3 data-i18n="catalog_series">Сериалы</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-series', -1)">‹</button>
                 <button type="button" onclick="scrollRow('row-series', 1)">›</button>
@@ -253,7 +266,7 @@
 
           <div class="catalog-row-wrap">
             <div class="catalog-row-header">
-              <h3>Мультики</h3>
+              <h3 data-i18n="catalog_cartoons">Мультики</h3>
               <div class="row-arrows">
                 <button type="button" onclick="scrollRow('row-cartoons', -1)">‹</button>
                 <button type="button" onclick="scrollRow('row-cartoons', 1)">›</button>
@@ -264,12 +277,10 @@
         </div>
       </section>
 
-      <!-- СТРАНИЦА ФИЛЬМА -->
       <section id="film-page" class="section">
         <div id="film-page-content"></div>
       </section>
 
-      <!-- НЕДАВНИЕ -->
       <section id="home" class="section">
         <div class="halloween-banner">
           <div class="halloween-banner-content">
@@ -284,8 +295,8 @@
           <div class="home-content">
             <div class="page-heading">
               <div>
-                <p class="eyebrow">Лента киноклуба</p>
-                <h2>Недавние</h2>
+                <p class="eyebrow" data-i18n="page_home_eyebrow">Лента киноклуба</p>
+                <h2 data-i18n="page_home_title">Недавние</h2>
               </div>
               <select id="reviews-sort" class="sort-select" onchange="sortRecentReviews(this.value)">
                 <option value="all">Все</option>
@@ -298,7 +309,7 @@
             <div class="search-container home-search-mobile">
               <div class="search-box">
                 <svg class="search-icon" width="18" height="18"><use href="#i-search"/></svg>
-                <input id="home-search" type="search" placeholder="Проверить оценку фильма..." autocomplete="off" oninput="searchHomeRated(this.value)" />
+                <input id="home-search" type="search" data-i18n-placeholder="search_home" placeholder="Проверить оценку фильма..." autocomplete="off" oninput="searchHomeRated(this.value)" />
               </div>
               <div id="home-search-status" class="search-status" style="display:none;"></div>
             </div>
@@ -308,42 +319,39 @@
             <div class="sidebar-card profile-tip">
               <div class="sidebar-icon"><svg width="20" height="20"><use href="#i-film"/></svg></div>
               <div>
-                <h3>Ваш Киноклуб</h3>
-                <p>Оценивайте фильмы, делитесь впечатлениями и выбирайте, что посмотреть вечером.</p>
+                <h3 data-i18n="side_your_club">Ваш Киноклуб</h3>
+                <p data-i18n="side_your_club_text">Оценивайте фильмы, делитесь впечатлениями и выбирайте, что посмотреть вечером.</p>
               </div>
             </div>
             <div class="sidebar-card">
-              <h3>Быстрые действия</h3>
+              <h3 data-i18n="side_quick">Быстрые действия</h3>
               <button class="quick-action quick-action-primary" type="button" onclick="showSection('movies')">
-                <svg width="18" height="18"><use href="#i-film"/></svg> Открыть каталог
+                <svg width="18" height="18"><use href="#i-film"/></svg> <span data-i18n="side_catalog">Открыть каталог</span>
               </button>
               <button class="quick-action" type="button" onclick="showSection('watchlist')">
-                <svg width="18" height="18"><use href="#i-bookmark"/></svg> Хочу посмотреть
+                <svg width="18" height="18"><use href="#i-bookmark"/></svg> <span data-i18n="side_watchlist">Хочу посмотреть</span>
               </button>
               <button class="quick-action" type="button" onclick="showSection('wheel')">
-                <svg width="18" height="18"><use href="#i-disc"/></svg> Случайный фильм
+                <svg width="18" height="18"><use href="#i-disc"/></svg> <span data-i18n="side_random">Случайный фильм</span>
               </button>
             </div>
           </aside>
         </div>
       </section>
 
-      <!-- ХОЧУ ПОСМОТРЕТЬ -->
       <section id="watchlist" class="section">
-        <div class="page-heading"><div><p class="eyebrow">Закладки</p><h2>Хочу посмотреть <span id="watchlist-count" class="count"></span></h2></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="page_watchlist_eyebrow">Закладки</p><h2 data-i18n="page_watchlist_title">Хочу посмотреть <span id="watchlist-count" class="count"></span></h2></div></div>
         <div id="watchlist-grid" class="movies-grid"></div>
       </section>
 
-      <!-- ПРОСМОТРЕННЫЕ -->
       <section id="watched" class="section">
-        <div class="page-heading"><div><p class="eyebrow">Личная история</p><h2>Просмотренные <span id="watched-count" class="count"></span></h2></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="page_watched_eyebrow">Личная история</p><h2 data-i18n="page_watched_title">Просмотренные <span id="watched-count" class="count"></span></h2></div></div>
         <div id="watched-grid" class="movies-grid"></div>
       </section>
 
-      <!-- ОЦЕНЁННЫЕ -->
       <section id="rated" class="section">
         <div class="page-heading">
-          <div><p class="eyebrow">Мнения участников</p><h2>Оценённые фильмы <span id="rated-count" class="count"></span></h2></div>
+          <div><p class="eyebrow" data-i18n="page_rated_eyebrow">Мнения участников</p><h2 data-i18n="page_rated_title">Оценённые фильмы <span id="rated-count" class="count"></span></h2></div>
           <select id="rated-sort" class="sort-select" onchange="sortRatedMovies(this.value)">
             <option value="rating-desc">Рейтинг ↓</option>
             <option value="rating-asc">Рейтинг ↑</option>
@@ -354,19 +362,18 @@
         <div class="search-container">
           <div class="search-box">
             <svg class="search-icon" width="18" height="18"><use href="#i-search"/></svg>
-            <input id="rated-search" type="search" placeholder="Найти фильм среди оценённых..." autocomplete="off" oninput="filterRatedMovies(this.value)" />
+            <input id="rated-search" type="search" data-i18n-placeholder="search_rated" placeholder="Найти фильм среди оценённых..." autocomplete="off" oninput="filterRatedMovies(this.value)" />
           </div>
           <div id="rated-search-status" class="search-status" style="display:none;"></div>
         </div>
         <div id="rated-movies-list" class="movies-grid"></div>
       </section>
 
-      <!-- КОЛЕСО -->
       <section id="wheel" class="section">
         <div class="page-heading">
-          <div><p class="eyebrow">Выбор на вечер</p><h2>Колесо фильмов</h2></div>
+          <div><p class="eyebrow" data-i18n="page_wheel_eyebrow">Выбор на вечер</p><h2 data-i18n="page_wheel_title">Колесо фильмов</h2></div>
           <button class="btn btn-secondary" type="button" onclick="loadWheelMovies()">
-            <svg width="16" height="16"><use href="#i-refresh"/></svg> Новые фильмы
+            <svg width="16" height="16"><use href="#i-refresh"/></svg> <span data-i18n="btn_new_movies">Новые фильмы</span>
           </button>
         </div>
         <div class="wheel-layout">
@@ -385,50 +392,69 @@
                 <button type="button" onclick="changeDuration(1)">+</button>
                 <span class="duration-label">сек</span>
               </div>
-              <button id="spin-btn" class="btn btn-primary btn-spin" type="button" onclick="spinWheel()">Крутить</button>
+              <button id="spin-btn" class="btn btn-primary btn-spin" type="button" onclick="spinWheel()" data-i18n="btn_spin">Крутить</button>
             </div>
             <div id="wheel-result" class="wheel-result"></div>
           </div>
           <div class="wheel-history-card">
-            <h3>История выпадений</h3>
+            <h3 data-i18n="page_wheel_history">История выпадений</h3>
             <div id="wheel-history"></div>
           </div>
         </div>
       </section>
 
-      <!-- ДРУЗЬЯ -->
       <section id="friends" class="section">
-        <div class="page-heading"><div><p class="eyebrow">Ваше окружение</p><h2>Друзья</h2></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="page_friends_eyebrow">Ваше окружение</p><h2 data-i18n="page_friends_title">Друзья</h2></div></div>
         <div class="friends-layout">
           <div class="friends-card">
-            <h3>Найти пользователя</h3>
-            <input id="user-search" type="search" placeholder="Введите имя…" autocomplete="off" oninput="searchUsers(this.value)" />
+            <h3 data-i18n="friends_find">Найти пользователя</h3>
+            <input id="user-search" type="search" data-i18n-placeholder="friends_search_placeholder" placeholder="Введите имя…" autocomplete="off" oninput="searchUsers(this.value)" />
             <div id="user-search-results" class="stack-list"></div>
           </div>
           <div class="friends-card">
-            <h3>Заявки</h3>
+            <h3 data-i18n="friends_requests">Заявки</h3>
             <div id="friend-requests" class="stack-list"></div>
           </div>
           <div class="friends-card">
-            <h3>Мои друзья</h3>
+            <h3 data-i18n="friends_my">Мои друзья</h3>
             <div id="friends-list" class="stack-list"></div>
           </div>
         </div>
       </section>
 
-      <!-- ПРОФИЛЬ -->
       <section id="profile" class="section">
-        <div class="page-heading"><div><p class="eyebrow">Настройки аккаунта</p><h2>Профиль</h2></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="page_profile_eyebrow">Настройки аккаунта</p><h2 data-i18n="page_profile_title">Профиль</h2></div></div>
         <div id="profile-info"></div>
       </section>
 
-      <!-- ЧАТ -->
+      <section id="admin" class="section">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow" data-i18n="page_admin_eyebrow">Панель управления</p>
+            <h2 data-i18n="page_admin_title">Админ-панель</h2>
+          </div>
+        </div>
+
+        <div class="admin-tabs">
+          <button class="admin-tab active" onclick="switchAdminTab('stats', this)">Статистика</button>
+          <button class="admin-tab" onclick="switchAdminTab('users', this)">Пользователи</button>
+          <button class="admin-tab" onclick="switchAdminTab('reviews', this)">Рецензии</button>
+          <button class="admin-tab" onclick="switchAdminTab('comments', this)">Комментарии</button>
+          <button class="admin-tab" onclick="switchAdminTab('movies', this)">Фильмы</button>
+          <button class="admin-tab" onclick="switchAdminTab('logs', this)">Логи</button>
+        </div>
+
+        <div id="admin-content">
+          <p style="color:var(--muted);padding:40px;text-align:center;">Загрузка…</p>
+        </div>
+      </section>
+
       <section id="chat" class="section">
-        <div class="page-heading"><div><p class="eyebrow">Личные сообщения</p><h2>Чат <span id="chat-count" class="count"></span></h2></div></div>
+        <div class="page-heading"><div><p class="eyebrow" data-i18n="page_chat_eyebrow">Личные сообщения</p><h2 data-i18n="page_chat_title">Чат</h2></div></div>
         <div class="tg-chat" id="tg-chat">
           <div class="tg-sidebar" id="tg-sidebar">
             <div class="tg-sidebar-search">
-              <input type="text" id="chat-search" placeholder="Поиск..." autocomplete="off" oninput="filterChats(this.value)" />
+              <input type="text" id="chat-search" data-i18n-placeholder="search_chat" placeholder="Поиск..." autocomplete="off" oninput="filterChats(this.value)" />
             </div>
             <div id="chat-list" class="tg-chat-list"></div>
           </div>
@@ -444,7 +470,7 @@
             <div id="chat-container" class="tg-messages"></div>
             <div class="tg-empty" id="tg-empty">
               <div class="tg-empty-icon"><svg width="64" height="64"><use href="#i-message"/></svg></div>
-              <div>Выберите чат, чтобы начать общение</div>
+              <div data-i18n="chat_empty">Выберите чат, чтобы начать общение</div>
             </div>
             <button class="tg-scroll-bottom" id="tg-scroll-bottom" onclick="forceScrollToBottom()" style="display:none;">↓</button>
             <div class="tg-input-area" id="chat-controls" style="display:none;">
@@ -453,7 +479,7 @@
                 <button class="tg-icon-btn" onclick="toggleEmojiPicker(event)"><svg width="20" height="20"><use href="#i-smile"/></svg></button>
                 <label class="tg-icon-btn"><svg width="20" height="20"><use href="#i-image"/></svg><input type="file" accept="image/*" onchange="handleFileSelect(event)" style="display:none;" /></label>
                 <label class="tg-icon-btn"><svg width="20" height="20"><use href="#i-video"/></svg><input type="file" accept="video/*" onchange="handleVideoSelect(event)" style="display:none;" /></label>
-                <input id="chat-input" type="text" placeholder="Написать сообщение..." autocomplete="off" onkeydown="handleChatKeydown(event)" onpaste="handlePaste(event)" />
+                <input id="chat-input" type="text" data-i18n-placeholder="chat_input_placeholder" placeholder="Написать сообщение..." autocomplete="off" onkeydown="handleChatKeydown(event)" onpaste="handlePaste(event)" />
                 <button class="tg-send-btn" onclick="sendMessage()"><svg width="18" height="18"><use href="#i-send"/></svg></button>
               </div>
               <div class="tg-emoji-picker" id="tg-emoji-picker" style="display:none;"></div>
@@ -463,20 +489,17 @@
       </section>
     </main>
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div class="bottom-nav" id="bottom-nav">
-      <a href="#" onclick="showSection('movies'); return false;" data-nav="movies"><svg width="22" height="22"><use href="#i-home"/></svg><small>Главная</small></a>
-      <a href="#" onclick="showSection('rated'); return false;" data-nav="rated"><svg width="22" height="22"><use href="#i-star"/></svg><small>Оценки</small></a>
-      <a href="#" onclick="showSection('home'); return false;" data-nav="home"><svg width="22" height="22"><use href="#i-film"/></svg><small>Недавние</small></a>
-      <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><svg width="22" height="22"><use href="#i-bookmark"/></svg><small>Хочу</small></a>
+      <a href="#" onclick="showSection('movies'); return false;" data-nav="movies"><svg width="22" height="22"><use href="#i-home"/></svg><small data-i18n="nav_home">Главная</small></a>
+      <a href="#" onclick="showSection('rated'); return false;" data-nav="rated"><svg width="22" height="22"><use href="#i-star"/></svg><small data-i18n="nav_rated">Оценки</small></a>
+      <a href="#" onclick="showSection('home'); return false;" data-nav="home"><svg width="22" height="22"><use href="#i-film"/></svg><small data-i18n="nav_recent">Недавние</small></a>
+      <a href="#" onclick="showSection('watchlist'); return false;" data-nav="watchlist"><svg width="22" height="22"><use href="#i-bookmark"/></svg><small data-i18n="nav_watchlist">Хочу</small></a>
       <a href="#" onclick="showSection('chat'); return false;" data-nav="chat">
-        <svg width="22" height="22"><use href="#i-message"/></svg><small>Чат</small>
-        <span id="unread-badge-mobile" class="nav-badge" style="display:none;">0</span>
+        <svg width="22" height="22"><use href="#i-message"/></svg><small data-i18n="nav_chat">Чат</small>
       </a>
     </div>
   </div>
 
-  <!-- МОДАЛКИ -->
   <div id="movie-modal" class="modal" onclick="if(event.target===this) closeModal()">
     <div class="modal-content">
       <button class="close" type="button" onclick="closeModal()"><svg width="20" height="20"><use href="#i-close"/></svg></button>
@@ -487,7 +510,7 @@
   <div id="edit-review-modal" class="modal" onclick="if(event.target===this) closeEditReviewModal()">
     <div class="modal-content">
       <button class="close" type="button" onclick="closeEditReviewModal()"><svg width="20" height="20"><use href="#i-close"/></svg></button>
-      <h2>Редактировать рецензию</h2>
+      <h2 data-i18n="modal_edit_review">Редактировать рецензию</h2>
       <div class="form-group">
         <label>Оценка <span id="edit-rating-display" class="rating-display">0/10</span></label>
         <div class="star-rating edit-star-rating" id="edit-star-rating">
@@ -531,7 +554,7 @@
   <div id="notifications-modal" class="modal" onclick="if(event.target===this) closeNotificationsModal()">
     <div class="modal-content">
       <button class="close" type="button" onclick="closeNotificationsModal()"><svg width="20" height="20"><use href="#i-close"/></svg></button>
-      <h2>Уведомления</h2>
+      <h2 data-i18n="modal_notifications">Уведомления</h2>
       <div id="notifications-list" class="stack-list"></div>
     </div>
   </div>
@@ -542,8 +565,8 @@
 
   <div id="confirm-modal" class="modal">
     <div class="modal-content" style="max-width:400px;">
-      <h2>Подтверждение</h2>
-      <p id="confirm-message" style="color:#8b8b9a;"></p>
+      <h2 data-i18n="modal_confirm">Подтверждение</h2>
+      <p id="confirm-message" style="color:var(--muted);"></p>
       <div class="modal-actions">
         <button class="btn btn-danger" onclick="confirmAction()">Да, удалить</button>
         <button class="btn btn-secondary" onclick="closeConfirmModal()">Отмена</button>
@@ -555,6 +578,11 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
     }
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof applyLanguage === 'function') applyLanguage();
+    });
   </script>
 </body>
 </html>
