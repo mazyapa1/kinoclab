@@ -1074,25 +1074,76 @@ async function loadCatalogRow(rowId, type, append) {
 
   if (!append) container.innerHTML = buildRowSkeletonHTML();
 
+  const en = (typeof currentLang !== 'undefined') && currentLang === 'en';
+
   try {
     let films = [];
 
-    if (type === 'popular') {
-      films = await fetchMoviesByCategory('popular', state.page);
-    } else if (type === 'top250') {
-      films = await fetchMoviesByCategory('top250', state.page);
-    } else if (type === 'series') {
-      films = await fetchMoviesByCategory('series', state.page);
-    } else if (type === 'cartoons') {
-      films = await fetchMoviesByCategory('cartoons', state.page);
-    } else if (type === 'await') {
-      films = await fetchMoviesByCategory('await', 1);
-      if (!films.length) state.hasMore = false;
+    if (en) {
+      // ===== EN: TMDB =====
+      const catMap = {
+        popular: 'popular',
+        top250: 'top_rated',
+        await: 'upcoming',
+        series: 'series',
+        cartoons: 'cartoons',
+      };
+      const body = {
+        category: catMap[type] || 'popular',
+        page: (type === 'await') ? 1 : state.page,
+      };
+      const { data, error } = await supabaseClient.functions.invoke('tmdb-list', { body });
+      if (error) console.warn('tmdb-list error:', error);
+      films = (data?.films || []).map(f => ({
+        filmId: f.filmId,
+        _tmdb: true,
+        nameRu: f.nameRu || f.nameEn,
+        nameEn: f.nameEn || f.nameRu,
+        year: f.year,
+        posterUrl: f.posterUrl,
+        posterUrlPreview: f.posterUrlPreview,
+        rating: f.rating,
+        description: f.description,
+        genres: f.genres || [],
+      }));
+    } else {
+      // ===== RU: Кинопоиск =====
+      if (type === 'popular' || type === 'top250') {
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-page', {
+          body: { page: state.page, category: type }
+        });
+        if (error) console.warn('get-movies-by-page error:', error);
+        films = data?.films || [];
+      } else if (type === 'series') {
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-type', {
+          body: { page: state.page, type: 'TV_SERIES', order: 'RATING' }
+        });
+        if (error) console.warn('get-movies-by-type error:', error);
+        films = data?.films || [];
+      } else if (type === 'cartoons') {
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-type', {
+          body: { page: state.page, type: 'CARTOON', order: 'RATING' }
+        });
+        if (error) console.warn('get-movies-by-type error:', error);
+        films = data?.films || [];
+      } else if (type === 'await') {
+        const { data, error } = await supabaseClient.functions.invoke('get-premiers', { body: {} });
+        if (error) console.warn('get-premiers error:', error);
+        films = data?.films || [];
+        if (!films.length) state.hasMore = false;
+      }
     }
+
+    // Запоминаем tmdb_id → {title, year} для конвертации при клике
+    films.forEach(f => {
+      if (f._tmdb && f.filmId) {
+        window._pendingTmdbIds[f.filmId] = { title: f.nameEn || f.nameRu, year: f.year };
+      }
+    });
 
     if (!films.length) {
       state.hasMore = false;
-      if (!append) container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:20px;">Пусто</p>';
+      if (!append) container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:20px;">' + (en ? 'Empty' : 'Пусто') + '</p>';
       state.loading = false;
       return;
     }
@@ -1111,8 +1162,8 @@ async function loadCatalogRow(rowId, type, append) {
       }, 300);
     }
   } catch (e) {
-    console.error('row error:', rowId, e);
-    if (!append) container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:20px;">Ошибка загрузки</p>';
+    console.error('row error:', rowId, type, e);
+    if (!append) container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:20px;">' + (en ? 'Load error' : 'Ошибка загрузки') + '</p>';
     state.hasMore = false;
   }
   state.loading = false;
