@@ -277,14 +277,36 @@ async function getMovie(filmId) {
 
 async function getPosterFromAPI(kinopoiskId) {
   if (!kinopoiskId) return '';
+
+  // RU-режим: постер из Кинопоиска (не TMDB!)
+  if (!isEnMode()) {
+    const data = await getKinopoiskMovie(kinopoiskId);
+    const p = data?.posterUrlPreview || data?.posterUrl || '';
+    if (p) return p;
+    // Если у Кинопоиска постер не нашёлся — пробуем TMDB как fallback
+    try {
+      const { data: mapping } = await supabaseClient
+        .from('movie_ids_map').select('tmdb_id').eq('kinopoisk_id', kinopoiskId).maybeSingle();
+      if (mapping?.tmdb_id) {
+        const movie = await getTmdbMovie(mapping.tmdb_id);
+        return movie?.posterUrlPreview || movie?.posterUrl || '';
+      }
+    } catch (e) {}
+    return '';
+  }
+
+  // EN-режим: постер из TMDB
   try {
-    const { data: mapping } = await supabaseClient.from('movie_ids_map').select('tmdb_id').eq('kinopoisk_id', kinopoiskId).maybeSingle();
+    const { data: mapping } = await supabaseClient
+      .from('movie_ids_map').select('tmdb_id').eq('kinopoisk_id', kinopoiskId).maybeSingle();
     if (mapping?.tmdb_id) {
       const movie = await getTmdbMovie(mapping.tmdb_id);
       const p = movie?.posterUrlPreview || movie?.posterUrl;
       if (p) return p;
     }
   } catch (e) {}
+
+  // Если в EN TMDB не нашёлся — fallback на Кинопоиск
   const data = await getKinopoiskMovie(kinopoiskId);
   return data?.posterUrlPreview || data?.posterUrl || '';
 }
@@ -1574,7 +1596,9 @@ async function loadCatalogRows() {
   for (let i = 0; i < CATALOG_ROWS.length; i++) {
     const row = CATALOG_ROWS[i];
     rowState[row.id] = { page: 1, loading: false, hasMore: true };
-    setTimeout(() => { loadCatalogRow(row.id, row.type, false); }, i * 150);
+    setTimeout(() => {
+      loadCatalogRow(row.id, row.type, false);
+    }, i * 150);
   }
 }
 
@@ -1584,50 +1608,95 @@ async function loadCatalogRow(rowId, type, append) {
   const state = rowState[rowId];
   if (!state || state.loading || !state.hasMore) return;
   state.loading = true;
+
   if (!append) container.innerHTML = buildRowSkeletonHTML();
+
   const en = isEnMode();
+
   try {
     let films = [];
+
     if (en) {
-      const catMap = { popular: 'popular', top250: 'top_rated', await: 'upcoming', series: 'series', cartoons: 'cartoons' };
-      const body = { category: catMap[type] || 'popular', page: (type === 'await') ? 1 : state.page };
+      // ===== EN: TMDB =====
+      const catMap = {
+        popular: 'popular',
+        top250: 'top_rated',
+        await: 'upcoming',
+        series: 'series',
+        cartoons: 'cartoons',
+      };
+      const body = {
+        category: catMap[type] || 'popular',
+        page: (type === 'await') ? 1 : state.page,
+      };
       const { data, error } = await supabaseClient.functions.invoke('tmdb-list', { body });
       if (error) console.warn('tmdb-list error:', error);
       films = (data?.films || []).map(f => ({
-        filmId: f.filmId, _tmdb: true,
-        nameRu: f.nameRu || f.nameEn, nameEn: f.nameEn || f.nameRu,
-        year: f.year, posterUrl: f.posterUrl, posterUrlPreview: f.posterUrlPreview,
-        rating: f.rating, description: f.description, genres: f.genres || [],
+        filmId: f.filmId,
+        _tmdb: true,
+        nameRu: f.nameRu || f.nameEn,
+        nameEn: f.nameEn || f.nameRu,
+        year: f.year,
+        posterUrl: f.posterUrl,
+        posterUrlPreview: f.posterUrlPreview,
+        rating: f.rating,
+        description: f.description,
+        genres: f.genres || [],
       }));
     } else {
+      // ===== RU: Кинопоиск =====
       if (type === 'popular' || type === 'top250') {
-        const { data } = await supabaseClient.functions.invoke('get-movies-by-page', { body: { page: state.page, category: type } });
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-page', {
+          body: { page: state.page, category: type }
+        });
+        if (error) console.warn('get-movies-by-page error:', error);
         films = data?.films || [];
       } else if (type === 'series') {
-        const { data } = await supabaseClient.functions.invoke('get-movies-by-type', { body: { page: state.page, type: 'TV_SERIES', order: 'RATING' } });
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-type', {
+          body: { page: state.page, type: 'TV_SERIES', order: 'RATING' }
+        });
+        if (error) console.warn('get-movies-by-type error:', error);
         films = data?.films || [];
       } else if (type === 'cartoons') {
-        const { data } = await supabaseClient.functions.invoke('get-movies-by-type', { body: { page: state.page, type: 'CARTOON', order: 'RATING' } });
+        const { data, error } = await supabaseClient.functions.invoke('get-movies-by-type', {
+          body: { page: state.page, type: 'CARTOON', order: 'RATING' }
+        });
+        if (error) console.warn('get-movies-by-type error:', error);
         films = data?.films || [];
       } else if (type === 'await') {
-        const { data } = await supabaseClient.functions.invoke('get-premiers', { body: {} });
+        const { data, error } = await supabaseClient.functions.invoke('get-premiers', { body: {} });
+        if (error) console.warn('get-premiers error:', error);
         films = data?.films || [];
         if (!films.length) state.hasMore = false;
       }
     }
-    films.forEach(f => { if (f._tmdb && f.filmId) window._pendingTmdbIds[f.filmId] = { title: f.nameEn || f.nameRu, year: f.year }; });
+
+    // Запоминаем tmdb_id → {title, year} для конвертации при клике
+    films.forEach(f => {
+      if (f._tmdb && f.filmId) {
+        window._pendingTmdbIds[f.filmId] = { title: f.nameEn || f.nameRu, year: f.year };
+      }
+    });
+
     if (!films.length) {
       state.hasMore = false;
       if (!append) container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:20px;">' + L('Пусто', 'Empty') + '</p>';
       state.loading = false;
       return;
     }
+
     const html = films.map(f => buildMovieCardHTML(f)).join('');
     if (append) container.insertAdjacentHTML('beforeend', html);
     else container.innerHTML = html;
+
     state.page++;
+
     if (append && container.scrollLeft + container.clientWidth >= container.scrollWidth - 400) {
-      setTimeout(() => { if (state.hasMore && !state.loading) loadCatalogRow(rowId, type, true); }, 300);
+      setTimeout(() => {
+        if (state.hasMore && !state.loading) {
+          loadCatalogRow(rowId, type, true);
+        }
+      }, 300);
     }
   } catch (e) {
     console.error('row error:', rowId, type, e);

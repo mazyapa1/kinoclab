@@ -40,6 +40,7 @@ const I18N = {
     page_chat_title: 'Чат',
     page_admin_eyebrow: 'Панель управления',
     page_admin_title: 'Админ-панель',
+    catalog_halloween: '🎃 Хэллоуин',
 
     // Каталог
     catalog_popular: 'Популярное',
@@ -239,6 +240,7 @@ const I18N = {
     profile_watched: 'Watched',
     profile_admin: 'Admin panel',
     profile_logout: 'Log out',
+    catalog_halloween: '🎃 Halloween',
 
     // Page headings
     page_movies_eyebrow: 'Catalog',
