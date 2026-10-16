@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     await loadWatchedMovies();
     subscribeToNotifications();
-    showMainApp();
+    showMainApp();               // ← сначала показываем приложение + восстанавливаем секцию
     startPresence();
     subscribeToMessages();
     subscribeToPresence();
@@ -1253,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   setTimeout(initCatalogRowScroll, 800);
 
-  if (handleHashRoute()) {
+  if (handleHashRoute()) {       // ← потом проверяем hash — если есть #film/id, открываем фильм
     document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
     document.getElementById('film-page').classList.add('active');
   }
@@ -1389,7 +1389,20 @@ function showMainApp() {
   document.getElementById('user-name-display').textContent = currentUserProfile?.username || currentUser.email;
   const adminItem = document.getElementById('admin-menu-item');
   if (adminItem) adminItem.style.display = isAdmin() ? 'flex' : 'none';
-  showSection('movies');
+
+  // Если в URL есть #film/... — роутер откроет фильм (через handleHashRoute)
+  // Если нет — восстанавливаем последнюю секцию из localStorage
+  if (!window.location.hash || !window.location.hash.startsWith('#film/')) {
+    let last = 'movies';
+    try { last = localStorage.getItem('lastSection') || 'movies'; } catch (e) {}
+    // film-page восстанавливать не надо — она открывается через hash
+    if (last === 'film-page') last = 'movies';
+    // если секции нет в DOM — уходим на movies
+    if (!document.getElementById(last)) last = 'movies';
+    showSection(last);
+  } else {
+    showSection('movies');
+  }
 }
 
 async function logout() {
@@ -1405,7 +1418,9 @@ async function logout() {
 function showSection(s) {
   currentSection = s;
   window.scrollTo({ top: 0, behavior: 'instant' });
-  localStorage.setItem('lastSection', s);
+  if (s !== 'film-page') {
+    localStorage.setItem('lastSection', s);
+  }
   document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
   const target = document.getElementById(s);
   if (target) target.classList.add('active');
